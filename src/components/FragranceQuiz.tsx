@@ -18,7 +18,7 @@ const quizOptions: QuizOption[] = [
     id: 'gourmand',
     title: 'Gourmand',
     description: 'Notes sucrées, vanillées et addictives',
-    imageSrc: 'https://images.unsplash.com/photo-1511910849309-0dffb8785146?w=400&h=400&fit=crop',
+    imageSrc: 'https://www.image-heberg.fr/files/17703938171372688414.png',
     imageAlt: 'Flacon de parfum avec vanille et caramel',
     gradient: 'from-amber-100 to-orange-100',
   },
