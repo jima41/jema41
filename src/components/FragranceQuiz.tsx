@@ -8,7 +8,8 @@ interface QuizOption {
   id: OlfactoryFamily;
   title: string;
   description: string;
-  emoji: string;
+  imageSrc: string;
+  imageAlt: string;
   gradient: string;
 }
 
@@ -17,28 +18,32 @@ const quizOptions: QuizOption[] = [
     id: 'gourmand',
     title: 'Gourmand',
     description: 'Notes sucrées, vanillées et addictives',
-    emoji: '🍯',
+    imageSrc: 'https://images.unsplash.com/photo-1511910849309-0dffb8785146?w=400&h=400&fit=crop',
+    imageAlt: 'Flacon de parfum avec vanille et caramel',
     gradient: 'from-amber-100 to-orange-100',
   },
   {
     id: 'frais',
     title: 'Frais',
     description: 'Notes aquatiques, citronnées et légères',
-    emoji: '🌊',
+    imageSrc: 'https://images.unsplash.com/photo-1524592714635-5fdfb210e12f?w=400&h=400&fit=crop',
+    imageAlt: 'Flacon de parfum avec citron et eau',
     gradient: 'from-cyan-100 to-blue-100',
   },
   {
     id: 'épicé',
     title: 'Épicé',
     description: 'Notes chaudes, intenses et envoutantes',
-    emoji: '🌶️',
+    imageSrc: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&h=400&fit=crop',
+    imageAlt: 'Épices chaudes autour d\'un flacon de parfum',
     gradient: 'from-red-100 to-rose-100',
   },
   {
     id: 'boisé',
     title: 'Boisé',
     description: 'Notes terreuses, profondes et élégantes',
-    emoji: '🌲',
+    imageSrc: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=400&fit=crop',
+    imageAlt: 'Flacon de parfum posé sur du bois',
     gradient: 'from-emerald-100 to-green-100',
   },
 ];
