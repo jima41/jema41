@@ -1,5 +1,4 @@
 import { Instagram, Facebook, Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const Footer = () => {
   return (
@@ -8,8 +7,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <h3 className="text-2xl font-semibold mb-4">Rayha Store</h3>
-            <p className="text-background/70 mb-6 max-w-sm">
+            <h3 className="font-serif text-3xl md:text-4xl font-normal mb-4">Rayha Store</h3>
+            <p className="text-background/70 mb-6 max-w-sm font-light">
               L'art de la parfumerie de luxe, accessible à tous. Découvrez des fragrances d'exception qui racontent votre histoire.
             </p>
             <div className="flex gap-4">
@@ -27,19 +26,16 @@ const Footer = () => {
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold mb-4">Navigation</h4>
-            <ul className="space-y-3 text-background/70">
+            <h4 className="font-serif text-lg font-normal mb-4 uppercase tracking-widest text-sm">Navigation</h4>
+            <ul className="space-y-3 text-background/70 text-sm font-light">
               <li><a href="#" className="hover:text-background transition-colors">Tous les Parfums</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Femme</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Homme</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Unisex</a></li>
             </ul>
           </div>
 
           {/* Support */}
           <div>
-            <h4 className="font-semibold mb-4">Support</h4>
-            <ul className="space-y-3 text-background/70">
+            <h4 className="font-serif text-lg font-normal mb-4 uppercase tracking-widest text-sm">Support</h4>
+            <ul className="space-y-3 text-background/70 text-sm font-light">
               <li><a href="#" className="hover:text-background transition-colors">Contact</a></li>
               <li><a href="#" className="hover:text-background transition-colors">FAQ</a></li>
               <li><a href="#" className="hover:text-background transition-colors">Livraison</a></li>
@@ -50,28 +46,28 @@ const Footer = () => {
 
         {/* Newsletter */}
         <div className="mt-12 pt-8 border-t border-background/10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div>
-              <h4 className="font-semibold mb-1">Restez informé</h4>
+              <h4 className="font-serif text-2xl md:text-3xl font-normal mb-2">Restez informé</h4>
               <p className="text-sm text-background/70">
                 Inscrivez-vous pour recevoir nos offres exclusives
               </p>
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               <input
                 type="email"
                 placeholder="Votre email"
-                className="flex-1 md:w-64 px-4 py-2.5 rounded-full bg-background/10 border border-background/20 text-background placeholder:text-background/50 focus:outline-none focus:border-background/40"
+                className="flex-1 sm:w-auto px-4 py-3 rounded-lg bg-background/15 border border-background/30 hover:border-background/50 text-background placeholder:text-background/50 focus:outline-none focus:border-background/60 focus:ring-2 focus:ring-background/20 transition-all backdrop-blur-sm"
               />
-              <Button variant="luxury" className="rounded-full">
+              <button className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-background/40 hover:border-background/80 hover:bg-background/10 transition-all text-sm font-medium text-background whitespace-nowrap">
                 S'inscrire
-              </Button>
+              </button>
             </div>
           </div>
         </div>
 
         {/* Copyright */}
-        <div className="mt-8 pt-8 border-t border-background/10 text-center text-sm text-background/50">
+        <div className="mt-8 pt-8 border-t border-background/10 text-center text-xs text-background/50 font-light tracking-widest uppercase">
           <p>© 2025 Rayha Store. Tous droits réservés.</p>
         </div>
       </div>

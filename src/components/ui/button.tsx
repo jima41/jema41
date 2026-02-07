@@ -17,6 +17,8 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         luxury: "btn-luxury text-foreground font-semibold hover:shadow-luxury rounded-full",
         glass: "glass hover:bg-card/80 text-foreground border-border/50",
+        filter: "border border-border/40 text-foreground/70 hover:border-border/80 hover:text-foreground data-[active=true]:border-foreground/60 data-[active=true]:text-foreground data-[active=true]:bg-secondary/30",
+        cart: "border border-foreground/30 text-foreground hover:border-[#D4AF37]/60 hover:text-[#D4AF37] transition-all duration-300 hover:shadow-sm",
       },
       size: {
         default: "h-10 px-4 py-2",

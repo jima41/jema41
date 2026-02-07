@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: ["class"],
+  darkMode: "class",
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
@@ -14,9 +14,21 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Montserrat', 'system-ui', 'sans-serif'],
+        serif: ['Cormorant Garamond', 'serif'],
+        montserrat: ['Montserrat', 'sans-serif'],
       },
       colors: {
+        // Admin dark theme
+        admin: {
+          bg: "#0F1115",
+          card: "#1A1D23",
+          gold: "#D4AF37",
+          "gold-light": "#F0D595",
+          "text-primary": "#FFFFFF",
+          "text-secondary": "#9CA3AF",
+          border: "rgba(212, 175, 55, 0.2)",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -105,13 +117,25 @@ export default {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(100%)" },
         },
+        "slide-in-left": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(0)" },
+        },
         "scale-in": {
           "0%": { transform: "scale(0.95)", opacity: "0" },
           "100%": { transform: "scale(1)", opacity: "1" },
         },
-        shimmer: {
+        "glow-pulse": {
+          "0%, 100%": { opacity: "1", boxShadow: "0 0 20px rgba(212, 175, 55, 0.5)" },
+          "50%": { opacity: "0.8", boxShadow: "0 0 30px rgba(212, 175, 55, 0.8)" },
+        },
+        "shimmer": {
           "0%": { left: "-100%" },
           "50%, 100%": { left: "100%" },
+        },
+        "underline-expand": {
+          "0%": { transform: "scaleX(0)", transformOrigin: "center" },
+          "100%": { transform: "scaleX(1)", transformOrigin: "center" },
         },
       },
       animation: {
@@ -121,14 +145,23 @@ export default {
         "fade-in": "fade-in 0.5s ease-out forwards",
         "slide-in-right": "slide-in-right 0.3s ease-out forwards",
         "slide-out-right": "slide-out-right 0.3s ease-out forwards",
+        "slide-in-left": "slide-in-left 0.3s ease-out forwards",
         "scale-in": "scale-in 0.2s ease-out forwards",
-        shimmer: "shimmer 3s infinite",
+        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
+        "shimmer": "shimmer 3s infinite",
+        "underline-expand": "underline-expand 0.3s ease-out forwards",
       },
       boxShadow: {
-        'glass': '0 8px 32px hsl(0 0% 0% / 0.05)',
-        'glass-lg': '0 16px 48px hsl(0 0% 0% / 0.08)',
-        'luxury': '0 10px 30px hsl(30 60% 50% / 0.2)',
-        'product': '0 20px 40px hsl(0 0% 0% / 0.08)',
+        'glass': '0 8px 32px rgba(0, 0, 0, 0.1)',
+        'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.15)',
+        'glass-gold': '0 0 20px rgba(212, 175, 55, 0.3), inset 0 0 20px rgba(212, 175, 55, 0.1)',
+        'luxury': '0 10px 30px rgba(212, 175, 55, 0.2)',
+        'product': '0 20px 40px rgba(0, 0, 0, 0.1)',
+      },
+      letterSpacing: {
+        tighter: '-0.05em',
+        widest: '0.15em',
+        shipping: '0.2em',
       },
     },
   },

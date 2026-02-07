@@ -1,5 +1,6 @@
 import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import type { Product } from './ProductGrid';
 
 export interface CartItem extends Product {
@@ -17,9 +18,15 @@ interface CartDrawerProps {
 const FREE_SHIPPING_THRESHOLD = 100;
 
 const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: CartDrawerProps) => {
+  const navigate = useNavigate();
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progressPercentage = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+
+  const handleCheckout = () => {
+    navigate('/checkout');
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -38,8 +45,8 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
           <div className="flex items-center justify-between p-6 border-b border-border/50">
             <div className="flex items-center gap-3">
               <ShoppingBag className="w-5 h-5" />
-              <h2 className="text-lg font-semibold">Votre Panier</h2>
-              <span className="text-sm text-muted-foreground">
+              <h2 className="font-serif text-lg font-normal">Votre Panier</h2>
+              <span className="text-xs text-foreground/70 uppercase tracking-widest">
                 ({items.reduce((sum, item) => sum + item.quantity, 0)} articles)
               </span>
             </div>
@@ -55,7 +62,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
           <div className="px-6 py-4 border-b border-border/50 bg-secondary/30">
             {remainingForFreeShipping > 0 ? (
               <>
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className="text-xs text-foreground/70 mb-2 uppercase tracking-widest">
                   Plus que <span className="font-semibold text-foreground">{remainingForFreeShipping.toFixed(2)}€</span> pour la livraison gratuite
                 </p>
                 <div className="h-2 bg-border rounded-full overflow-hidden">
@@ -66,8 +73,8 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                 </div>
               </>
             ) : (
-              <p className="text-sm font-medium text-primary flex items-center gap-2">
-                <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              <p className="text-xs font-medium text-[#D4AF37] flex items-center gap-2 uppercase tracking-widest">
+                <span className="w-2 h-2 bg-[#D4AF37] rounded-full animate-pulse" />
                 Livraison gratuite débloquée !
               </p>
             )}
@@ -77,8 +84,8 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {items.length === 0 ? (
               <div className="text-center py-12">
-                <ShoppingBag className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Votre panier est vide</p>
+                <ShoppingBag className="w-12 h-12 mx-auto text-foreground/40 mb-4" />
+                <p className="text-foreground/70">Votre panier est vide</p>
               </div>
             ) : (
               items.map((item) => (
@@ -89,11 +96,11 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                     className="w-20 h-20 object-cover rounded-lg"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                    <p className="text-xs text-foreground/60 uppercase tracking-[0.1em] mb-1">
                       {item.brand}
                     </p>
-                    <h3 className="font-medium truncate">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">{item.scent}</p>
+                    <h3 className="font-serif font-normal truncate">{item.name}</h3>
+                    <p className="text-xs text-foreground/70">{item.scent}</p>
                     
                     <div className="flex items-center justify-between mt-2">
                       {/* Quantity Controls */}
@@ -136,13 +143,19 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
           {items.length > 0 && (
             <div className="p-6 border-t border-border/50 space-y-4 bg-card/50">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Sous-total</span>
-                <span className="text-xl font-semibold">{subtotal.toFixed(2)}€</span>
+                <span className="text-foreground/70 text-sm">Sous-total</span>
+                <span className="text-2xl font-serif font-light">{subtotal.toFixed(2)}€</span>
               </div>
-              <Button variant="luxury" size="lg" className="w-full">
+              <motion.button
+                onClick={handleCheckout}
+                className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-border/40 hover:border-border/80 hover:bg-secondary/30 transition-all text-sm font-medium"
+                whileHover={{ scale: 1.03, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              >
                 Passer à la caisse
-              </Button>
-              <p className="text-xs text-center text-muted-foreground">
+              </motion.button>
+              <p className="text-xs text-center text-foreground/60 uppercase tracking-widest">
                 Paiement sécurisé • Livraison sous 2-4 jours
               </p>
             </div>

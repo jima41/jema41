@@ -1,104 +1,73 @@
-import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useEffect, useMemo } from 'react';
 import ProductCard from './ProductCard';
-import { Button } from '@/components/ui/button';
-
-import perfume1 from '@/assets/perfume-1.jpg';
-import perfume2 from '@/assets/perfume-2.jpg';
-import perfume3 from '@/assets/perfume-3.jpg';
-import perfume4 from '@/assets/perfume-4.jpg';
-import perfume5 from '@/assets/perfume-5.jpg';
-import perfume6 from '@/assets/perfume-6.jpg';
-
-export interface Product {
-  id: string;
-  name: string;
-  brand: string;
-  price: number;
-  image: string;
-  scent: string;
-  category: string;
-}
-
-const products: Product[] = [
-  { id: '1', name: 'Éclat Doré', brand: 'Maison Rayha', price: 129.00, image: perfume1, scent: 'Gourmand', category: 'femme' },
-  { id: '2', name: 'Rose Éternelle', brand: 'Atelier Noble', price: 145.00, image: perfume2, scent: 'Floral', category: 'femme' },
-  { id: '3', name: 'Nuit Mystique', brand: 'Le Parfumeur', price: 98.00, image: perfume3, scent: 'Boisé', category: 'homme' },
-  { id: '4', name: 'Ambre Sauvage', brand: 'Maison Rayha', price: 175.00, image: perfume4, scent: 'Oriental', category: 'unisex' },
-  { id: '5', name: 'Oud Royal', brand: 'Collection Privée', price: 220.00, image: perfume5, scent: 'Oriental', category: 'unisex' },
-  { id: '6', name: 'Brise Marine', brand: 'Atelier Noble', price: 89.00, image: perfume6, scent: 'Frais', category: 'homme' },
-];
-
-const categories = ['tous', 'femme', 'homme', 'unisex'];
-const scents = ['tous', 'gourmand', 'floral', 'boisé', 'oriental', 'frais'];
+import { useAdmin } from '@/context/AdminContext';
+import { useAdminStore } from '@/store/useAdminStore';
+import { useFeaturedProducts } from '@/store/useAdminStore';
+import { useToast } from '@/hooks/use-toast';
+import type { Product } from '@/lib/products';
 
 interface ProductGridProps {
   onAddToCart: (product: Product) => void;
 }
 
 const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
-  const [activeCategory, setActiveCategory] = useState('tous');
-  const [activeScent, setActiveScent] = useState('tous');
+  const { products } = useAdmin();
+  const { products: storeProducts } = useAdminStore();
+  const { getFeaturedProducts, featuredProductIds } = useFeaturedProducts();
+  const { toast } = useToast();
 
-  const filteredProducts = products.filter(product => {
-    const categoryMatch = activeCategory === 'tous' || product.category === activeCategory;
-    const scentMatch = activeScent === 'tous' || product.scent.toLowerCase() === activeScent;
-    return categoryMatch && scentMatch;
-  });
+  // Get featured products if any are selected, otherwise show all products
+  const displayProducts = useMemo(() => {
+    if (featuredProductIds.length > 0) {
+      // Get featured products
+      const featured = getFeaturedProducts();
+      // Fallback to all products if featured list is empty (data consistency issue)
+      return featured.length > 0 ? featured : products;
+    }
+    return products;
+  }, [featuredProductIds, getFeaturedProducts, products]);
 
   const handleAddToCart = (id: string) => {
     const product = products.find(p => p.id === id);
+    const storeProduct = storeProducts.find(p => p.id === id);
+    
     if (product) {
+      // Check stock
+      const stock = storeProduct?.stock ?? 0;
+      if (stock === 0) {
+        toast({
+          title: 'Rupture de stock',
+          description: `${product.name} est actuellement indisponible.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       onAddToCart(product);
     }
   };
 
   return (
-    <section className="py-16 md:py-24">
+    <section id="notre-selection" className="py-16 md:py-24">
       <div className="container mx-auto">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-medium mb-4">Notre Collection</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <h2 className="font-serif text-3xl md:text-4xl font-normal mb-4 text-foreground">Notre Sélection</h2>
+          <p className="text-sm text-foreground/70 max-w-md mx-auto">
             Des fragrances d'exception pour chaque personnalité
           </p>
         </div>
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-6 mb-12">
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-            {categories.map((cat) => (
-              <Button
-                key={cat}
-                variant={activeCategory === cat ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveCategory(cat)}
-                className="capitalize"
-              >
-                {cat === 'tous' ? 'Tous les Parfums' : cat}
-              </Button>
-            ))}
-          </div>
-
-          {/* Scent Filter */}
-          <div className="flex flex-wrap gap-2 justify-center md:justify-start md:ml-auto">
-            {scents.map((scent) => (
-              <Button
-                key={scent}
-                variant={activeScent === scent ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveScent(scent)}
-                className="capitalize"
-              >
-                {scent === 'tous' ? 'Toutes notes' : scent}
-              </Button>
-            ))}
-          </div>
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-          {filteredProducts.map((product, index) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
+          {displayProducts.map((product, index) => {
+            const storeProduct = storeProducts.find(p => p.id === product.id);
+            return (
             <div 
               key={product.id} 
               className="animate-fade-up opacity-0"
@@ -111,17 +80,31 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
                 price={product.price}
                 image={product.image}
                 scent={product.scent}
+                notes={product.notes}
+                stock={storeProduct?.stock ?? 0}
+                notes_tete={storeProduct?.notes_tete}
+                notes_coeur={storeProduct?.notes_coeur}
+                notes_fond={storeProduct?.notes_fond}
+                families={storeProduct?.families}
                 onAddToCart={handleAddToCart}
               />
             </div>
-          ))}
+            );
+          })}
         </div>
 
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            Aucun parfum ne correspond à vos critères
-          </div>
-        )}
+        {/* View All Button */}
+        <div className="text-center mt-16">
+          <motion.button
+            onClick={() => window.location.href = '/all-products'}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border/40 hover:border-border/80 hover:bg-secondary/30 transition-all text-sm font-medium"
+            whileHover={{ scale: 1.03, y: -1 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+            Voir tous les parfums
+          </motion.button>
+        </div>
       </div>
     </section>
   );

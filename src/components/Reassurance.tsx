@@ -37,8 +37,8 @@ const Reassurance = () => {
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-secondary mb-4 group-hover:bg-champagne/30 transition-colors duration-300">
                 <item.icon className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="font-semibold mb-2">{item.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h3 className="font-serif font-normal mb-2 text-foreground">{item.title}</h3>
+              <p className="text-sm text-foreground/70 leading-relaxed">
                 {item.description}
               </p>
             </div>
