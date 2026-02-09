@@ -36,6 +36,14 @@ const buildFallbackProfile = (authUserId: string, authEmail: string): User => ({
   role: authEmail === 'admin@rayha.com' ? 'admin' : 'user',
 });
 
+const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timeout apres ${ms}ms`)), ms)
+    ),
+  ]);
+
 /**
  * Charge le profil utilisateur depuis la table profiles Supabase.
  * Retourne TOUJOURS un profil (fallback sur les infos auth si la DB échoue).
@@ -127,7 +135,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return;
             }
             try {
-              const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+              const profile = await withTimeout(
+                fetchUserProfile(session.user.id, session.user.email || ''),
+                8000,
+                'fetchUserProfile'
+              );
               if (mounted) {
                 console.log('🔐 Profil chargé via auth event:', profile.username);
                 setUser(profile);
@@ -212,10 +224,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       console.log('🔐 login: signInWithPassword...');
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email,
+          password,
+        }),
+        8000,
+        'signInWithPassword'
+      );
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -233,7 +249,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // pour que le state soit mis à jour avant le retour de login().
       if (data.user) {
         try {
-          const profile = await fetchUserProfile(data.user.id, data.user.email || '');
+          const profile = await withTimeout(
+            fetchUserProfile(data.user.id, data.user.email || ''),
+            8000,
+            'fetchUserProfile'
+          );
           console.log('🔐 login: Profil chargé directement:', profile.username);
           setUser(profile);
         } catch (profileErr) {

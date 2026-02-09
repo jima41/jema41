@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useAnalytics } from '@/context/AnalyticsContext';
+import { supabase } from '@/integrations/supabase/supabase';
 import CartDrawer from '@/components/CartDrawer';
 
 const Login = () => {
@@ -15,6 +16,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const isMountedRef = useRef(true);
 
   const navigate = useNavigate();
   const { login, user } = useAuth();
@@ -28,6 +30,12 @@ const Login = () => {
       navigate('/', { replace: true });
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     trackPageView('/login', 'Connexion');
@@ -47,13 +55,22 @@ const Login = () => {
       );
 
       await Promise.race([loginPromise, timeoutPromise]);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('Connexion non confirmée. Vérifiez vos identifiants et réessayez.');
+      }
       // La navigation est gérée par le useEffect qui observe user
-      // setIsLoading reste true jusqu'à la navigation
     } catch (err) {
       console.error('❌ handleSubmit error:', err);
       const msg = err instanceof Error ? err.message : 'Erreur de connexion';
       setError(msg);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
+    } finally {
+      if (isMountedRef.current && !user) {
+        setIsLoading(false);
+      }
     }
   };
 
