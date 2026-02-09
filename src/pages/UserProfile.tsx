@@ -6,11 +6,18 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useAnalytics } from '@/context/AnalyticsContext';
 
 const UserProfile = () => {
   const navigate = useNavigate();
   const { user, updateProfile, updatePassword } = useAuth();
   const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const { trackPageView, trackPageExit } = useAnalytics();
+
+  useEffect(() => {
+    trackPageView('/mes-informations', 'Mon profil');
+    return () => trackPageExit('/mes-informations');
+  }, []);
   
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);

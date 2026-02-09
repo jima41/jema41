@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/supabase';
 
 export interface User {
@@ -25,19 +25,35 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * Charge le profil utilisateur depuis la table profiles Supabase
+ * Crée un profil utilisateur basique à partir des infos d'auth (fallback)
  */
-const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<User | null> => {
+const buildFallbackProfile = (authUserId: string, authEmail: string): User => ({
+  id: authUserId,
+  username: authEmail.split('@')[0],
+  email: authEmail,
+  firstName: '',
+  lastName: '',
+  role: authEmail === 'admin@rayha.com' ? 'admin' : 'user',
+});
+
+/**
+ * Charge le profil utilisateur depuis la table profiles Supabase.
+ * Retourne TOUJOURS un profil (fallback sur les infos auth si la DB échoue).
+ */
+const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<User> => {
   try {
+    console.log('🔍 fetchUserProfile: Chargement pour', authUserId);
+
     const { data, error } = await supabase
       .from('profiles')
       .select('id, username, email, first_name, last_name, role')
       .eq('id', authUserId)
       .single();
 
+    console.log('🔍 fetchUserProfile: Résultat select', { data: !!data, error: error?.message });
+
     if (error || !data) {
       console.warn('⚠️ Profil non trouvé, tentative de création...');
-      // Le trigger aurait dû créer le profil, mais créons-le manuellement au cas où
       const { data: newProfile, error: insertError } = await supabase
         .from('profiles')
         .upsert({
@@ -52,8 +68,8 @@ const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<
         .single();
 
       if (insertError || !newProfile) {
-        console.error('❌ Impossible de créer le profil:', insertError);
-        return null;
+        console.error('❌ Impossible de créer le profil:', insertError?.message);
+        return buildFallbackProfile(authUserId, authEmail);
       }
 
       return {
@@ -76,13 +92,20 @@ const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<
     };
   } catch (err) {
     console.error('❌ Erreur fetchUserProfile:', err);
-    return null;
+    return buildFallbackProfile(authUserId, authEmail);
   }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const userRef = useRef<User | null>(null);
+  const loginInProgress = useRef(false);
+
+  // Garder userRef synchronisé avec user
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   // Écouter les changements de session Supabase Auth
   useEffect(() => {
@@ -91,11 +114,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 1. Récupérer la session existante
     const initSession = async () => {
       try {
+        console.log('🔐 initSession: Vérification de la session...');
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user && mounted) {
+          console.log('🔐 initSession: Session trouvée pour', session.user.email);
           const profile = await fetchUserProfile(session.user.id, session.user.email || '');
           if (mounted) setUser(profile);
+        } else {
+          console.log('🔐 initSession: Pas de session existante');
         }
       } catch (err) {
         console.error('❌ Erreur initSession:', err);
@@ -109,7 +136,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 2. Écouter les changements d'état auth (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth event:', event);
+        console.log('🔐 Auth event:', event, 'loginInProgress:', loginInProgress.current);
+
+        // Si le login est en cours, on laisse la fonction login gérer le profil
+        if (loginInProgress.current) {
+          console.log('🔐 Auth event ignoré (login en cours)');
+          return;
+        }
+
+        // Ignorer INITIAL_SESSION car initSession() le gère déjà
+        if (event === 'INITIAL_SESSION') {
+          console.log('🔐 INITIAL_SESSION ignoré (géré par initSession)');
+          return;
+        }
 
         if (event === 'SIGNED_IN' && session?.user) {
           const profile = await fetchUserProfile(session.user.id, session.user.email || '');
@@ -124,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           // Session rafraîchie, ne rien changer si l'utilisateur est déjà chargé
-          if (!user && mounted) {
+          if (!userRef.current && mounted) {
             const profile = await fetchUserProfile(session.user.id, session.user.email || '');
             if (mounted) setUser(profile);
           }
@@ -139,41 +178,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback(async (identifier: string, password: string) => {
+    loginInProgress.current = true;
     setIsLoading(true);
     try {
       // Déterminer si l'identifiant est un email ou un pseudo
       let email = identifier.trim();
       const isEmail = email.includes('@');
+      console.log('🔐 login: Début', { identifier: email, isEmail });
 
       if (!isEmail) {
         let foundEmail: string | null = null;
         
         // Méthode 1 : via fonction RPC (bypass RLS)
         try {
+          console.log('🔐 login: Tentative RPC get_email_by_username...');
           const { data: emailResult, error: rpcError } = await supabase
             .rpc('get_email_by_username', { p_username: email });
           
+          console.log('🔐 login: RPC résultat', { emailResult, rpcError: rpcError?.message });
           if (!rpcError && emailResult) {
             foundEmail = emailResult as string;
           }
         } catch (e) {
-          // RPC non disponible
+          console.warn('🔐 login: RPC échoué', e);
         }
 
         // Méthode 2 : fallback requête directe sur profiles
         if (!foundEmail) {
           try {
+            console.log('🔐 login: Tentative fallback direct profiles...');
             const { data: profileData } = await supabase
               .from('profiles')
               .select('email')
               .ilike('username', email)
               .single();
 
-            if (profileData && (profileData as any).email) {
-              foundEmail = (profileData as any).email;
+            if (profileData?.email) {
+              foundEmail = profileData.email;
             }
           } catch (e) {
-            // Fallback échoué
+            console.warn('🔐 login: Fallback échoué', e);
           }
         }
 
@@ -181,12 +225,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw new Error('Pseudo introuvable. Vérifiez votre pseudo ou utilisez votre email.');
         }
         email = foundEmail;
+        console.log('🔐 login: Email trouvé via pseudo:', email);
       }
 
+      console.log('🔐 login: signInWithPassword...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      console.log('🔐 login: signIn résultat', { userId: data?.user?.id, error: error?.message });
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -199,10 +246,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
-        const profile = await fetchUserProfile(data.user.id, data.user.email || '');
-        setUser(profile);
+        console.log('🔐 login: fetchUserProfile...');
+        try {
+          const profile = await fetchUserProfile(data.user.id, data.user.email || '');
+          console.log('🔐 login: Profil chargé', { username: profile.username, role: profile.role });
+          setUser(profile);
+        } catch (profileErr) {
+          // Profil fallback si tout échoue - ne pas bloquer le login
+          console.error('🔐 login: Erreur profil, utilisation du fallback', profileErr);
+          setUser(buildFallbackProfile(data.user.id, data.user.email || ''));
+        }
       }
+      
+      console.log('🔐 login: Terminé avec succès');
+    } catch (err) {
+      console.error('🔐 login: Erreur', err);
+      throw err;
     } finally {
+      // Différer le reset pour laisser onAuthStateChange ignorer l'event SIGNED_IN
+      setTimeout(() => {
+        loginInProgress.current = false;
+      }, 2000);
       setIsLoading(false);
     }
   }, []);

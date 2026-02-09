@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard';
 import CartDrawer from '@/components/CartDrawer';
 import { useCart } from '@/context/CartContext';
 import { useAdmin } from '@/context/AdminContext';
+import { useAnalytics } from '@/context/AnalyticsContext';
 import { useAdminStore } from '@/store/useAdminStore';
 import type { Product } from '@/lib/products';
 
@@ -15,7 +16,8 @@ const SearchResults = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
-  const { trackPageView, products } = useAdmin();
+  const { trackPageView: adminTrackPageView, products } = useAdmin();
+  const { trackPageView, trackPageExit } = useAnalytics();
   const { products: storeProducts } = useAdminStore();
 
   const query = searchParams.get('q')?.toLowerCase() || '';
@@ -27,7 +29,9 @@ const SearchResults = () => {
 
   // Track page view on mount (only once)
   useEffect(() => {
-    trackPageView(window.location.pathname + window.location.search);
+    adminTrackPageView(window.location.pathname + window.location.search);
+    trackPageView('/search', 'Recherche');
+    return () => trackPageExit('/search');
   }, []);
 
   const filteredProducts = products.filter(product =>

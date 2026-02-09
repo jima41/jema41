@@ -8,14 +8,18 @@ import Reassurance from '@/components/Reassurance';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { useAdmin } from '@/context/AdminContext';
+import { useAnalytics } from '@/context/AnalyticsContext';
 import type { Product } from '@/lib/products';
 
 const Index = () => {
   const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
-  const { trackPageView } = useAdmin();
+  const { trackPageView: adminTrackPageView } = useAdmin();
+  const { trackPageView, trackPageExit, trackClick } = useAnalytics();
 
   useEffect(() => {
-    trackPageView('/');
+    adminTrackPageView('/');
+    trackPageView('/', 'Accueil');
+    return () => trackPageExit('/');
   }, []);
 
   const handleAddToCart = (product: Product) => {

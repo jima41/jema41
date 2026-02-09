@@ -10,6 +10,7 @@ import CartDrawer from '@/components/CartDrawer';
 import FilterDrawer from '@/components/FilterDrawer';
 import { useCart } from '@/context/CartContext';
 import { useAdmin } from '@/context/AdminContext';
+import { useAnalytics } from '@/context/AnalyticsContext';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/lib/products';
@@ -30,7 +31,8 @@ const AllProducts = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
-  const { trackPageView, products: allProducts } = useAdmin();
+  const { trackPageView: adminTrackPageView, products: allProducts } = useAdmin();
+  const { trackPageView, trackPageExit, trackClick } = useAnalytics();
   const { products: storeProducts } = useAdminStore();
   const { toast } = useToast();
   
@@ -49,7 +51,9 @@ const AllProducts = () => {
 
   // Track page view on mount (only once)
   useEffect(() => {
-    trackPageView('/all-products');
+    adminTrackPageView('/all-products');
+    trackPageView('/all-products', 'Tous les produits');
+    return () => trackPageExit('/all-products');
   }, []);
 
   // Get unique values for filters

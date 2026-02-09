@@ -14,13 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          id: string
+          username: string | null
+          email: string | null
+          first_name: string | null
+          last_name: string | null
+          role: string | null
+          avatar_url: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          username?: string | null
+          email?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          role?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          username?: string | null
+          email?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          role?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_email_by_username: {
+        Args: { p_username: string }
+        Returns: string
+      }
+      get_user_profile: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      update_user_profile: {
+        Args: {
+          p_user_id: string
+          p_email?: string
+          p_first_name?: string
+          p_last_name?: string
+          p_avatar_url?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

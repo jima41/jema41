@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useAnalytics } from '@/context/AnalyticsContext';
 import CartDrawer from '@/components/CartDrawer';
 
 const Signup = () => {
@@ -21,6 +22,12 @@ const Signup = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
   const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const { trackPageView, trackPageExit } = useAnalytics();
+
+  useEffect(() => {
+    trackPageView('/signup', 'Inscription');
+    return () => trackPageExit('/signup');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

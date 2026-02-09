@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useAnalytics } from '@/context/AnalyticsContext';
 import CartDrawer from '@/components/CartDrawer';
 
 const Login = () => {
@@ -18,6 +19,12 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const { trackPageView, trackPageExit } = useAnalytics();
+
+  useEffect(() => {
+    trackPageView('/login', 'Connexion');
+    return () => trackPageExit('/login');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,11 +32,21 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(identifier, password);
+      // Timeout de sécurité de 15 secondes
+      const loginPromise = login(identifier, password);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('La connexion prend trop de temps. Vérifiez votre connexion internet et réessayez.')), 15000)
+      );
+
+      await Promise.race([loginPromise, timeoutPromise]);
+      
+      // Petit délai pour laisser React processeurs les state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de connexion');
-    } finally {
+      console.error('❌ handleSubmit error:', err);
+      const msg = err instanceof Error ? err.message : 'Erreur de connexion';
+      setError(msg);
       setIsLoading(false);
     }
   };

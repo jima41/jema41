@@ -32,12 +32,21 @@ export const UserDataSyncInitializer = () => {
 
     const initializeUserData = async () => {
       try {
-        // Charger le panier
-        await initializeCart(user.id);
+        // Timeout de sécurité pour éviter un blocage si Supabase ne répond pas
+        const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+          Promise.race([
+            promise,
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`${label} timeout après ${ms}ms`)), ms)
+            ),
+          ]);
+
+        // Charger le panier (avec timeout de 10s)
+        await withTimeout(initializeCart(user.id), 10000, 'initializeCart');
         setupCartRealtime(user.id);
 
-        // Charger les favoris
-        await initializeFavorites(user.id);
+        // Charger les favoris (avec timeout de 10s)
+        await withTimeout(initializeFavorites(user.id), 10000, 'initializeFavorites');
         setupFavoritesRealtime(user.id);
 
         console.log('✅ Synchronisation utilisateur complète');

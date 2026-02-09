@@ -4,15 +4,23 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
+import { useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useAdmin } from '@/context/AdminContext';
+import { useAnalytics } from '@/context/AnalyticsContext';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 
 const Favorites = () => {
   const navigate = useNavigate();
   const { cartItemsCount, addToCart, setIsCartOpen } = useCart();
   const { products } = useAdmin();
+  const { trackPageView, trackPageExit } = useAnalytics();
   const { favorites } = useFavoritesStore();
+
+  useEffect(() => {
+    trackPageView('/favorites', 'Favoris');
+    return () => trackPageExit('/favorites');
+  }, []);
 
   const favoriteProducts = products.filter(p => favorites.includes(p.id));
 
