@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/supabase';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -14,9 +15,27 @@ export const ProtectedRoute = ({
   requiredUsername = 'Jema41'
 }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      setHasSession(!!session?.user);
+      setSessionChecked(true);
+    }).catch(() => {
+      if (!mounted) return;
+      setHasSession(false);
+      setSessionChecked(true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Show loading state if auth is still loading
-  if (isLoading) {
+  if (isLoading || !sessionChecked) {
     return (
       <div className="min-h-screen bg-admin-bg flex items-center justify-center">
         <div className="text-center">
@@ -27,8 +46,18 @@ export const ProtectedRoute = ({
   }
 
   // Check if user is not authenticated
-  if (!user) {
+  if (!user && !hasSession) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!user && hasSession) {
+    return (
+      <div className="min-h-screen bg-admin-bg flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-admin-text-secondary">Chargement...</p>
+        </div>
+      </div>
+    );
   }
 
   // Check if user has required role
