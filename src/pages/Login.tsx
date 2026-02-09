@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
@@ -9,10 +9,11 @@ import { useCart } from '@/context/CartContext';
 import CartDrawer from '@/components/CartDrawer';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -24,7 +25,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(username, password);
+      await login(identifier, password);
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion');
@@ -60,17 +61,17 @@ const Login = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Username Field */}
+              {/* Email ou Pseudo Field */}
               <div>
-                <label htmlFor="username" className="block text-xs uppercase tracking-widest text-foreground/70 mb-2 font-medium">
-                  Identifiant
+                <label htmlFor="identifier" className="block text-xs uppercase tracking-widest text-foreground/70 mb-2 font-medium">
+                  Email ou Pseudo
                 </label>
                 <input
-                  id="username"
+                  id="identifier"
                   type="text"
-                  placeholder="Votre identifiant"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="votre@email.com ou votre pseudo"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg border border-border bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   required
                 />
@@ -81,15 +82,24 @@ const Login = () => {
                 <label htmlFor="password" className="block text-xs uppercase tracking-widest text-foreground/70 mb-2 font-medium">
                   Mot de passe
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Votre mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-border bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Votre mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2 pr-10 rounded-lg border border-border bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Submit Button */}

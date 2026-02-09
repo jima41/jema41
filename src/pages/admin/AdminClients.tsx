@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Edit2, Trash2, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/supabase';
 
 interface User {
   id: string;
@@ -9,7 +10,6 @@ interface User {
   firstName?: string;
   lastName?: string;
   role: 'admin' | 'user';
-  password?: string;
 }
 
 interface UserModalData {
@@ -27,13 +27,24 @@ const AdminClients = () => {
     loadUsers();
   }, []);
 
-  const loadUsers = () => {
+  const loadUsers = async () => {
     try {
-      const usersJSON = localStorage.getItem('users');
-      if (usersJSON) {
-        const allUsers = JSON.parse(usersJSON);
-        setUsers(allUsers);
-      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, email, first_name, last_name, role')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const allUsers: User[] = (data || []).map((p: any) => ({
+        id: p.id,
+        username: p.username || '',
+        email: p.email || '',
+        firstName: p.first_name || '',
+        lastName: p.last_name || '',
+        role: p.role || 'user',
+      }));
+      setUsers(allUsers);
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
     }
@@ -49,30 +60,39 @@ const AdminClients = () => {
     setEditForm({});
   };
 
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     try {
-      const usersJSON = localStorage.getItem('users');
-      const allUsers = JSON.parse(usersJSON || '[]');
-      const index = allUsers.findIndex((u: User) => u.id === modal.user?.id);
-      
-      if (index !== -1) {
-        allUsers[index] = { ...allUsers[index], ...editForm };
-        localStorage.setItem('users', JSON.stringify(allUsers));
-        loadUsers();
-        handleCloseModal();
-      }
+      if (!modal.user?.id) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          email: (editForm as any).email || '',
+          first_name: (editForm as any).firstName || '',
+          last_name: (editForm as any).lastName || '',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', modal.user.id);
+
+      if (error) throw error;
+
+      await loadUsers();
+      handleCloseModal();
     } catch (error) {
       console.error('Erreur:', error);
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     try {
-      const usersJSON = localStorage.getItem('users');
-      const allUsers = JSON.parse(usersJSON || '[]');
-      const filtered = allUsers.filter((u: User) => u.id !== userId);
-      localStorage.setItem('users', JSON.stringify(filtered));
-      loadUsers();
+      // Supprimer les données associées puis le profil
+      await supabase.from('cart_items').delete().eq('user_id', userId);
+      await supabase.from('wishlist').delete().eq('user_id', userId);
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+
+      if (error) throw error;
+
+      await loadUsers();
       setDeleteConfirm(null);
     } catch (error) {
       console.error('Erreur:', error);

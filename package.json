@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "deploy": "npm run build && gh-pages -d dist",
-    "deploy-manual": "bash deploy.sh"
+    "deploy-manual": "bash deploy.sh",
+    "setup:supabase": "node setup-supabase.js",
+    "verify:setup": "node verify-setup.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -9,6 +9,8 @@ import { AdminProvider } from "@/context/AdminContext";
 import { AnalyticsProvider } from "@/context/AnalyticsContext";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import DataSyncInitializer from "@/components/DataSyncInitializer";
+import UserDataSyncInitializer from "@/components/UserDataSyncInitializer";
+import { DebugPanel } from "@/components/DebugPanel";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import SearchResults from "./pages/SearchResults";
@@ -30,6 +32,8 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminCRM from "./pages/admin/AdminCRM";
 import AdminGuide from "./pages/AdminGuide";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
+import SyncStatus from "./components/SyncStatus";
 
 const queryClient = new QueryClient();
 
@@ -38,13 +42,17 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <DebugPanel />
+      <SyncStatus />
       <AnalyticsProvider>
         <AuthProvider>
           <AdminProvider>
             <CartProvider>
               <DataSyncInitializer>
+                <UserDataSyncInitializer />
                 <AnnouncementBar />
                 <HashRouter>
+                  <ScrollToTop />
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/product/:id" element={<ProductDetail />} />

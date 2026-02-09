@@ -11,6 +11,7 @@ import { useCart } from '@/context/CartContext';
 import { useAdmin } from '@/context/AdminContext';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useProductTracking } from '@/hooks/use-page-tracking';
 import type { Product } from '@/lib/products';
@@ -23,6 +24,7 @@ const ProductDetail = () => {
   const { products: storeProducts } = useAdminStore();
   const { toast } = useToast();
   const { toggleFavorite, isFavorite } = useFavoritesStore();
+  const { user } = useAuth();
   const [isFav, setIsFav] = useState(false);
   const [productName, setProductName] = useState('Produit');
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -178,8 +180,8 @@ const ProductDetail = () => {
   };
 
   const handleToggleFavorite = () => {
-    if (id) {
-      toggleFavorite(id);
+    if (id && user?.id) {
+      toggleFavorite(user.id, id);
       setIsFav(!isFav);
       toast({
         title: isFav ? 'Retiré de vos coups de coeurs' : 'Ajouté à vos coups de coeurs',
@@ -442,7 +444,7 @@ const ProductDetail = () => {
                             <motion.button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleFavorite(relatedProduct.id);
+                                if (user?.id) toggleFavorite(user.id, relatedProduct.id);
                               }}
                               className="absolute top-3 right-3 p-2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm transition-all duration-300 z-10"
                               whileHover={{ scale: 1.1 }}

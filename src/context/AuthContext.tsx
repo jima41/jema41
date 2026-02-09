@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/supabase';
 
 export interface User {
   id: string;
@@ -11,10 +12,10 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  userId: string | null; // ID utilisateur directement accessible
+  userId: string | null;
   isLoading: boolean;
-  isAuthenticated: boolean; // Flag de vérification rapide
-  login: (username: string, password: string) => Promise<void>;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: (email: string, firstName: string, lastName: string) => Promise<void>;
@@ -23,14 +24,59 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Initialize with admin user
-const initializeUsers = () => {
-  const existingUsers = localStorage.getItem('users');
-  if (!existingUsers) {
-    const defaultUsers = [
-      { id: '1', username: 'Jema41', email: 'admin@rayha.com', password: 'berkane41', firstName: 'Admin', lastName: 'Store', role: 'admin' }
-    ];
-    localStorage.setItem('users', JSON.stringify(defaultUsers));
+/**
+ * Charge le profil utilisateur depuis la table profiles Supabase
+ */
+const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, email, first_name, last_name, role')
+      .eq('id', authUserId)
+      .single();
+
+    if (error || !data) {
+      console.warn('⚠️ Profil non trouvé, tentative de création...');
+      // Le trigger aurait dû créer le profil, mais créons-le manuellement au cas où
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authUserId,
+          email: authEmail,
+          username: authEmail.split('@')[0],
+          role: authEmail === 'admin@rayha.com' ? 'admin' : 'user',
+          first_name: '',
+          last_name: '',
+        })
+        .select()
+        .single();
+
+      if (insertError || !newProfile) {
+        console.error('❌ Impossible de créer le profil:', insertError);
+        return null;
+      }
+
+      return {
+        id: newProfile.id,
+        username: newProfile.username || authEmail.split('@')[0],
+        email: newProfile.email || authEmail,
+        firstName: newProfile.first_name || '',
+        lastName: newProfile.last_name || '',
+        role: (newProfile.role as 'admin' | 'user') || 'user',
+      };
+    }
+
+    return {
+      id: data.id,
+      username: data.username || authEmail.split('@')[0],
+      email: data.email || authEmail,
+      firstName: data.first_name || '',
+      lastName: data.last_name || '',
+      role: (data.role as 'admin' | 'user') || 'user',
+    };
+  } catch (err) {
+    console.error('❌ Erreur fetchUserProfile:', err);
+    return null;
   }
 };
 
@@ -38,142 +84,232 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize on mount
+  // Écouter les changements de session Supabase Auth
   useEffect(() => {
-    initializeUsers();
-    
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
+    let mounted = true;
+
+    // 1. Récupérer la session existante
+    const initSession = async () => {
       try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Erreur lors du chargement de l\'utilisateur:', error);
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.user && mounted) {
+          const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+          if (mounted) setUser(profile);
+        }
+      } catch (err) {
+        console.error('❌ Erreur initSession:', err);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+
+    initSession();
+
+    // 2. Écouter les changements d'état auth (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔐 Auth event:', event);
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+          if (mounted) {
+            setUser(profile);
+            setIsLoading(false);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          if (mounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // Session rafraîchie, ne rien changer si l'utilisateur est déjà chargé
+          if (!user && mounted) {
+            const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+            if (mounted) setUser(profile);
+          }
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string) => {
     setIsLoading(true);
     try {
-      const usersJSON = localStorage.getItem('users');
-      const users = usersJSON ? JSON.parse(usersJSON) : [];
-      
-      const foundUser = users.find(
-        (u: any) => u.username === username && u.password === password
-      );
+      // Déterminer si l'identifiant est un email ou un pseudo
+      let email = identifier.trim();
+      const isEmail = email.includes('@');
 
-      if (!foundUser) {
-        throw new Error('Identifiants invalides');
+      if (!isEmail) {
+        let foundEmail: string | null = null;
+        
+        // Méthode 1 : via fonction RPC (bypass RLS)
+        try {
+          const { data: emailResult, error: rpcError } = await supabase
+            .rpc('get_email_by_username', { p_username: email });
+          
+          if (!rpcError && emailResult) {
+            foundEmail = emailResult as string;
+          }
+        } catch (e) {
+          // RPC non disponible
+        }
+
+        // Méthode 2 : fallback requête directe sur profiles
+        if (!foundEmail) {
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('email')
+              .ilike('username', email)
+              .single();
+
+            if (profileData && (profileData as any).email) {
+              foundEmail = (profileData as any).email;
+            }
+          } catch (e) {
+            // Fallback échoué
+          }
+        }
+
+        if (!foundEmail) {
+          throw new Error('Pseudo introuvable. Vérifiez votre pseudo ou utilisez votre email.');
+        }
+        email = foundEmail;
       }
 
-      const loggedInUser: User = {
-        id: foundUser.id,
-        username: foundUser.username,
-        email: foundUser.email,
-        firstName: foundUser.firstName,
-        lastName: foundUser.lastName,
-        role: foundUser.role,
-      };
-
-      setUser(loggedInUser);
-      localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signup = async (username: string, email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const usersJSON = localStorage.getItem('users');
-      const users = usersJSON ? JSON.parse(usersJSON) : [];
-
-      // Check if username or email already exists
-      if (users.some((u: any) => u.username === username || u.email === email)) {
-        throw new Error('Cet utilisateur ou cet email existe déjà');
-      }
-
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
-        username,
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        firstName: '',
-        lastName: '',
-        role: 'user',
-      };
+      });
 
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Identifiant ou mot de passe incorrect');
+        }
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error('Veuillez confirmer votre email avant de vous connecter');
+        }
+        throw new Error(error.message);
+      }
 
-      // Log in the new user
-      const loggedInUser: User = {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        role: 'user' as const,
-      };
-
-      setUser(loggedInUser);
-      localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
+      if (data.user) {
+        const profile = await fetchUserProfile(data.user.id, data.user.email || '');
+        setUser(profile);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
-  };
-
-  const updateProfile = async (email: string, firstName: string, lastName: string) => {
-    if (!user) throw new Error('Aucun utilisateur connecté');
-    
+  const signup = useCallback(async (username: string, email: string, password: string) => {
+    setIsLoading(true);
     try {
-      const usersJSON = localStorage.getItem('users');
-      const users = usersJSON ? JSON.parse(usersJSON) : [];
-      
-      // Update user data
-      const userIndex = users.findIndex((u: any) => u.id === user.id);
-      if (userIndex === -1) throw new Error('Utilisateur non trouvé');
-      
-      users[userIndex] = { ...users[userIndex], email, firstName, lastName };
-      localStorage.setItem('users', JSON.stringify(users));
-      
-      // Update current user
-      const updatedUser: User = { ...user, email, firstName, lastName };
-      setUser(updatedUser);
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            first_name: '',
+            last_name: '',
+          },
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          throw new Error('Cet email est déjà utilisé');
+        }
+        throw new Error(error.message);
+      }
+
+      // Si l'email doit être confirmé
+      if (data.user && !data.session) {
+        throw new Error('Un email de confirmation vous a été envoyé. Vérifiez votre boîte mail.');
+      }
+
+      // Si l'inscription connecte directement (email confirmation désactivée)
+      if (data.user && data.session) {
+        const profile = await fetchUserProfile(data.user.id, data.user.email || '');
+        setUser(profile);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (err) {
+      console.error('❌ Erreur logout:', err);
+      setUser(null);
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (email: string, firstName: string, lastName: string) => {
+    if (!user) throw new Error('Aucun utilisateur connecté');
+
+    try {
+      // Mettre à jour le profil dans la table profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw new Error(profileError.message);
+
+      // Mettre à jour l'email dans Supabase Auth si changé
+      if (email !== user.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email });
+        if (authError) {
+          console.warn('⚠️ Email non mis à jour dans Auth:', authError.message);
+        }
+      }
+
+      // Mettre à jour l'état local
+      setUser(prev => prev ? { ...prev, email, firstName, lastName } : null);
     } catch (error) {
       throw error;
     }
-  };
+  }, [user]);
 
-  const updatePassword = async (oldPassword: string, newPassword: string) => {
+  const updatePassword = useCallback(async (oldPassword: string, newPassword: string) => {
     if (!user) throw new Error('Aucun utilisateur connecté');
-    
+
     try {
-      const usersJSON = localStorage.getItem('users');
-      const users = usersJSON ? JSON.parse(usersJSON) : [];
-      
-      const userIndex = users.findIndex((u: any) => u.id === user.id);
-      if (userIndex === -1) throw new Error('Utilisateur non trouvé');
-      
-      if (users[userIndex].password !== oldPassword) {
+      // Vérifier l'ancien mot de passe en tentant une connexion
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPassword,
+      });
+
+      if (verifyError) {
         throw new Error('Le mot de passe actuel est incorrect');
       }
-      
-      users[userIndex].password = newPassword;
-      localStorage.setItem('users', JSON.stringify(users));
+
+      // Mettre à jour le mot de passe
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) throw new Error(updateError.message);
     } catch (error) {
       throw error;
     }
-  };
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, userId: user?.id || null, isAuthenticated: !!user, isLoading, login, signup, logout, updateProfile, updatePassword }}>

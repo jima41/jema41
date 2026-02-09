@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Heart } from 'lucide-react';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useAuth } from '@/context/AuthContext';
 import type { TeteNote, CoeurNote, FondNote, OlfactoryFamily } from '@/lib/olfactory';
 
 interface ProductCardProps {
@@ -62,7 +63,17 @@ const ProductCard = ({
   const [showPyramid, setShowPyramid] = useState(false);
   const [isFaved, setIsFaved] = useState(false);
   const { toggleFavorite, isFavorite } = useFavoritesStore();
+  const { user } = useAuth();
   const hasOlfactoryData = notes_tete && notes_tete.length > 0 || notes_coeur && notes_coeur.length > 0 || notes_fond && notes_fond.length > 0;
+  
+  // Debug logging
+  useEffect(() => {
+    if (!image) {
+      console.warn(`⚠️ ProductCard ${name} (ID: ${id}) has NO image!`);
+    } else {
+      console.log(`✅ ProductCard ${name} has image:`, typeof image, image?.substring?.(0, 50) || image);
+    }
+  }, [id, name, image]);
   
   // Initialize favorite state
   useEffect(() => {
@@ -78,7 +89,8 @@ const ProductCard = ({
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleFavorite(id);
+    if (!user?.id) return;
+    toggleFavorite(user.id, id);
     setIsFaved(!isFaved);
   };
 
@@ -95,22 +107,43 @@ const ProductCard = ({
       }}
       style={{ cursor: !isOutOfStock ? 'pointer' : 'default' }}
     >
+      {/* DEBUG: Show if image is present */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute top-1 right-1 z-50 text-xs bg-black bg-opacity-70 text-white px-1 py-0.5 rounded">
+          {image ? '🖼️' : '❌'}
+        </div>
+      )}
+      
       {/* Image Container */}
       <motion.div 
         className="relative aspect-square overflow-hidden rounded-lg bg-secondary/30 mb-2"
         whileHover={{ scale: 1.02 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
       >
-        <motion.img
-          src={image}
-          alt={name}
-          className={`w-full h-full object-cover img-zoom transition-all duration-300 ${
-            isOutOfStock ? 'grayscale backdrop-blur-sm' : ''
-          }`}
-          loading="lazy"
-          whileHover={!isOutOfStock ? { scale: 1.05 } : undefined}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-        />
+        {image ? (
+          <motion.img
+            src={image}
+            alt={name}
+            className={`w-full h-full object-cover img-zoom transition-all duration-300 ${
+              isOutOfStock ? 'grayscale backdrop-blur-sm' : ''
+            }`}
+            loading="lazy"
+            whileHover={!isOutOfStock ? { scale: 1.05 } : undefined}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            onError={(e) => {
+              console.error(`❌ Image failed to load: ${image}`, e);
+            }}
+            onLoad={() => {
+              console.log(`✅ Image loaded successfully: ${name}`);
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
+            <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
         
         {/* Out of Stock - Raffiné Text Overlay */}
         {isOutOfStock && (

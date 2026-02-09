@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useCartStore, CartItem } from '@/store/useCartStore';
+import { useAuth } from '@/context/AuthContext';
 
 // Re-export types for backward compatibility
 export type { CartItem };
@@ -39,9 +40,25 @@ export const useCart = () => {
     setIsCartOpen,
   } = useCartStore();
 
-  // Wrapper pour addToCart (compatibilité - pas de userId params)
+  const { user } = useAuth();
+
+  // Wrapper pour addToCart - injecte automatiquement userId
   const addToCart = (product: Omit<CartItem, 'quantity'>) => {
-    addToCartStore(product);
+    if (!user?.id) {
+      console.warn('⚠️ Ajout au panier sans utilisateur connecté');
+      return;
+    }
+    // Map les propriétés du produit vers le format attendu par le store
+    const productData = {
+      productId: (product as any).productId || (product as any).id || '',
+      name: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.image || (product as any).image_url,
+      scent: (product as any).scent,
+      category: (product as any).category,
+    };
+    addToCartStore(productData, user.id);
   };
 
   return {

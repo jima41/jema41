@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import { useAdmin } from '@/context/AdminContext';
 import { useAdminStore } from '@/store/useAdminStore';
@@ -12,6 +13,7 @@ interface ProductGridProps {
 }
 
 const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
+  const navigate = useNavigate();
   const { products } = useAdmin();
   const { products: storeProducts } = useAdminStore();
   const { getFeaturedProducts, featuredProductIds } = useFeaturedProducts();
@@ -27,6 +29,20 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
     }
     return products;
   }, [featuredProductIds, getFeaturedProducts, products]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('📊 ProductGrid re-rendered with products:', {
+      count: products.length,
+      hasFeatured: featuredProductIds.length > 0,
+      displayProductsCount: displayProducts.length,
+      firstProduct: products.length > 0 ? {
+        name: products[0].name,
+        image: products[0].image?.substring?.(0, 50),
+        hasImage: !!products[0].image,
+      } : null
+    });
+  }, [products, displayProducts]);
 
   const handleAddToCart = (id: string) => {
     const product = products.find(p => p.id === id);
@@ -44,7 +60,7 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
         return;
       }
       
-      onAddToCart(product);
+      onAddToCart(product as any);
     }
   };
 
@@ -96,7 +112,7 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
         {/* View All Button */}
         <div className="text-center mt-16">
           <motion.button
-            onClick={() => window.location.href = '/all-products'}
+            onClick={() => navigate('/all-products')}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border/40 hover:border-border/80 hover:bg-secondary/30 transition-all text-sm font-medium"
             whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.98 }}

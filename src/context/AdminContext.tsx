@@ -4,6 +4,7 @@ import { useAdminStore, type Product as AdminProduct } from '@/store/useAdminSto
 import { useSyncAdminStore } from '@/hooks/use-sync-admin-store';
 
 export type { Product };
+export type { AdminProduct };
 
 export interface PageView {
   path: string;
@@ -12,7 +13,7 @@ export interface PageView {
 }
 
 interface AdminContextType {
-  products: Product[];
+  products: AdminProduct[];
   pageViews: PageView[];
   addProduct: (product: Omit<AdminProduct, 'id'>) => void;
   updateProduct: (id: string, product: Omit<AdminProduct, 'id'>) => void;

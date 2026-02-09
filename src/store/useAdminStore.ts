@@ -1,7 +1,38 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { DEFAULT_PRODUCTS } from '@/lib/products';
 import { classifyPerfume, type TeteNote, type CoeurNote, type FondNote, type OlfactoryFamily } from '@/lib/olfactory';
+import {
+  fetchAllProducts,
+  createProduct as supabaseCreate,
+  updateProduct as supabaseUpdate,
+  deleteProduct as supabaseDelete,
+  subscribeToProducts,
+  SupabaseError,
+  type ProductRow,
+} from '@/integrations/supabase/supabase';
+
+// Importer les images
+import perfume1 from '@/assets/perfume-1.jpg';
+import perfume2 from '@/assets/perfume-2.jpg';
+import perfume3 from '@/assets/perfume-3.jpg';
+import perfume4 from '@/assets/perfume-4.jpg';
+import perfume5 from '@/assets/perfume-5.jpg';
+import perfume6 from '@/assets/perfume-6.jpg';
+import perfume7 from '@/assets/perfume-7.jpg';
+import perfume8 from '@/assets/perfume-8.jpg';
+import perfume9 from '@/assets/perfume-9.jpg';
+import perfume10 from '@/assets/perfume-10.jpg';
+import perfume11 from '@/assets/perfume-11.jpg';
+import perfume12 from '@/assets/perfume-12.jpg';
+import perfume13 from '@/assets/perfume-13.jpg';
+import perfume14 from '@/assets/perfume-14.jpg';
+import perfume15 from '@/assets/perfume-15.jpg';
+import perfume16 from '@/assets/perfume-16.jpg';
+import perfume17 from '@/assets/perfume-17.jpg';
+import perfume18 from '@/assets/perfume-18.jpg';
+import perfume19 from '@/assets/perfume-19.jpg';
+import perfume20 from '@/assets/perfume-20.jpg';
+import perfume21 from '@/assets/perfume-21.jpg';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -34,18 +65,21 @@ export interface Product {
   name: string;
   brand: string;
   price: number;
-  image: string;
+  image?: string;
+  image_url?: string;
   scent: string;
-  category: string;          // Ancien champ pour compatibilité
-  families: OlfactoryFamily[]; // Nouvelles familles olfactives (calculées)
+  category?: string;
+  families: OlfactoryFamily[];
   description?: string;
-  notes?: string[];           // Ancien champ pour compatibilité
-  notes_tete: TeteNote[];     // Nouvelles notes pyramide olfactive
+  notes?: string[];
+  notes_tete: TeteNote[];
   notes_coeur: CoeurNote[];
   notes_fond: FondNote[];
   volume?: string;
   stock: number;
-  monthlySales: number;       // Ventes du mois pour calculer vélocité
+  monthlySales: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CRMStats {
@@ -83,22 +117,26 @@ export interface Order {
   notes?: string;
 }
 
-// ============================================================================
-// STATE INTERFACE
-// ============================================================================
-
 interface AdminStoreState {
   // Abandoned Carts
   abandonedCarts: AbandonedCart[];
   
   // Products
   products: Product[];
+  productsLoading: boolean;
+  productsError: string | null;
+  isInitialized: boolean;
 
   // Orders
   orders: Order[];
 
   // Featured Products (Notre Sélection)
   featuredProductIds: string[];
+
+  // Initialization & Sync
+  initializeProducts: () => Promise<void>;
+  setupRealtimeSync: () => void;
+  teardownRealtimeSync: () => void;
 
   // Featured Products Management (Notre Sélection)
   setFeaturedProducts: (productIds: string[]) => void;
@@ -114,11 +152,11 @@ interface AdminStoreState {
   getFilteredCarts: (filter: 'all' | 'pending' | 'recovered' | 'urgent') => AbandonedCart[];
 
   // CRUD Operations for Products
-  addProduct: (product: Product) => void;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  updateProductStock: (id: string, newStock: number) => void;
-  updateProductVelocity: (id: string, newMonthlySales: number) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Product) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  updateProductStock: (id: string, newStock: number) => Promise<void>;
+  updateProductVelocity: (id: string, newMonthlySales: number) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   resetProductsToDefaults: () => void;
 
   // CRUD Operations for Orders
@@ -145,61 +183,97 @@ export type { TeteNote, CoeurNote, FondNote, OlfactoryFamily } from '@/lib/olfac
 export { classifyPerfume, OLFACTORY_DICTIONARY, getAllNotesFlat, getTeteNoteIds, getCoeurNoteIds, getFondNoteIds } from '@/lib/olfactory';
 
 // ============================================================================
-// MIGRATION PRODUCTS
+// IMAGE MAPPING
 // ============================================================================
 
-// Valid families after removing Hespéridé and Aromatique
-const VALID_FAMILIES: OlfactoryFamily[] = [
-  'Floral',
-  'Boisé',
-  'Gourmand',
-  'Oriental',
-  'Épicé',
-  'Cuiré',
-  'Frais/Aquatique',
+// Mappage des images locales par ordre d'ajout
+const PRODUCT_IMAGES = [
+  perfume1, perfume2, perfume3, perfume4, perfume5,
+  perfume6, perfume7, perfume8, perfume9, perfume10,
+  perfume11, perfume12, perfume13, perfume14, perfume15,
+  perfume16, perfume17, perfume18, perfume19, perfume20, perfume21,
 ];
 
 /**
- * Convertir un ancien produit vers la nouvelle structure avec pyramide olfactive
+ * Associe une image à un produit basé sur son index ou son ID
  */
-const migrateProduct = (product: any): Product => {
-  // Si le produit a déjà les nouvelles propriétés, le retourner tel quel
-  if (product.notes_tete && product.notes_coeur && product.notes_fond) {
-    // Nettoyer les familles invalides (Hespéridé, Aromatique)
-    const validFamilies = (product.families || []).filter((f: OlfactoryFamily) => 
-      VALID_FAMILIES.includes(f)
-    );
-    return {
-      ...product,
-      families: validFamilies.length > 0 ? validFamilies : classifyPerfume(product.notes_tete, product.notes_coeur, product.notes_fond),
-    };
+const getProductImageByIndex = (index: number): string => {
+  const image = PRODUCT_IMAGES[index % PRODUCT_IMAGES.length];
+  return image;
+};
+
+/**
+ * Associe une image à un produit basé sur son ID numérique
+ */
+const getProductImageById = (id: string): string => {
+  const numericId = parseInt(id, 10);
+  if (!isNaN(numericId) && numericId > 0 && numericId <= PRODUCT_IMAGES.length) {
+    const image = PRODUCT_IMAGES[numericId - 1];
+    return image;
   }
+  // Fallback sur un hash simple de l'ID
+  const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const image = PRODUCT_IMAGES[hash % PRODUCT_IMAGES.length];
+  return image;
+};
 
-  // Sinon, créer une nouvelle structure
-  const notes_tete: TeteNote[] = [];
-  const notes_coeur: CoeurNote[] = [];
-  const notes_fond: FondNote[] = [];
+// ============================================================================
+// MIGRATION PRODUCTS FUNCTION
+// ============================================================================
 
-  // Par défaut, initialiser avec des notes vides
-  // Les notes peuvent être remplies ultérieurement via le formulaire
-  const families = classifyPerfume(notes_tete, notes_coeur, notes_fond);
-
+const convertProductRowToProduct = (row: ProductRow, index: number = 0): Product => {
+  // Essayer d'utiliser l'ID pour mapper l'image, sinon utiliser l'index
+  const imageUrl = row.image_url || getProductImageById(row.id) || getProductImageByIndex(index);
+  
+  // Log seulement les premiers 3 products pour éviter la surcharge
+  if (index < 3) {
+    console.log(`🖼️ Converting product ${row.name} (ID: ${row.id}, Index: ${index}):`, {
+      hasImageUrl: !!row.image_url,
+      finalImage: imageUrl?.substring?.(0, 50),
+      imageType: typeof imageUrl,
+    });
+  }
+  
   return {
-    ...product,
-    families,
-    notes_tete,
-    notes_coeur,
-    notes_fond,
+    id: row.id,
+    name: row.name,
+    brand: row.brand,
+    price: row.price,
+    image: imageUrl,
+    image_url: imageUrl,
+    scent: row.scent || 'Inconnu',
+    category: row.category || undefined,
+    families: (row.families || []) as OlfactoryFamily[],
+    description: row.description || undefined,
+    notes_tete: (row.notes_tete || []) as TeteNote[],
+    notes_coeur: (row.notes_coeur || []) as CoeurNote[],
+    notes_fond: (row.notes_fond || []) as FondNote[],
+    volume: row.volume || undefined,
+    stock: row.stock || 0,
+    monthlySales: row.monthlySales || 0,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 };
 
-const MOCK_PRODUCTS: Product[] = DEFAULT_PRODUCTS.map((p, idx) => 
-  migrateProduct({
-    ...p,
-    stock: [45, 28, 120, 0, 67, 89, 54, 32, 78, 91, 45, 60, 38, 73, 56, 81, 42, 67, 50, 85, 72][idx] || 50,
-    monthlySales: [85, 62, 43, 78, 51, 32, 68, 55, 72, 88, 63, 76, 58, 81, 65, 79, 47, 69, 61, 87, 74][idx] || 50,
-  })
-);
+const convertProductToRow = (product: Product) => {
+  return {
+    name: product.name,
+    brand: product.brand,
+    price: product.price,
+    image_url: product.image_url || product.image,
+    description: product.description,
+    scent: product.scent,
+    category: product.category,
+    families: product.families || [],
+    notes_tete: product.notes_tete || [],
+    notes_coeur: product.notes_coeur || [],
+    notes_fond: product.notes_fond || [],
+    volume: product.volume,
+    stock: product.stock || 0,
+    monthlySales: product.monthlySales || 0,
+  };
+};
 
 // ============================================================================
 // MOCK DATA - ABANDONED CARTS
@@ -298,101 +372,185 @@ const MOCK_ABANDONED_CARTS: AbandonedCart[] = [
   },
 ];
 
-// Helper to initialize products (from localStorage or defaults)
-const initializeProducts = (): Product[] => {
-  // Try to load from localStorage
-  const stored = localStorage.getItem('admin-store-products');
-  if (stored) {
-    try {
-      const products = JSON.parse(stored);
-      // Vérifier si les produits stockés sont valides et complets
-      if (Array.isArray(products) && products.length > 0 && products.length >= 21) {
-        // Migrer les anciens produits vers la nouvelle structure
-        return products.map(migrateProduct);
-      }
-    } catch (e) {
-      console.error('Failed to parse stored products:', e);
-      localStorage.removeItem('admin-store-products'); // Clear corrupted data
-      return MOCK_PRODUCTS;
+// ============================================================================
+// ZUSTAND STORE WITH SUPABASE INTEGRATION
+// ============================================================================
+
+let realtimeSubscription: any = null;
+
+export const useAdminStore = create<AdminStoreState>()((set, get) => ({
+  // Initial State
+  abandonedCarts: MOCK_ABANDONED_CARTS,
+  products: [],
+  productsLoading: false,
+  productsError: null,
+  isInitialized: false,
+  orders: [],
+  featuredProductIds: [],
+
+  // ========== INITIALIZATION & SYNC ==========
+
+  /**
+   * Initialise les produits depuis Supabase
+   * Appelée une seule fois au chargement de l'app
+   */
+  initializeProducts: async () => {
+    const state = get();
+    if (state.isInitialized) {
+      console.log('✅ Produits déjà initialisés');
+      return;
     }
-  }
-  // Default to MOCK_PRODUCTS if no valid localStorage data
-  return MOCK_PRODUCTS;
-};
 
-// ============================================================================
-// ZUSTAND STORE
-// ============================================================================
+    try {
+      set({ productsLoading: true, productsError: null });
+      console.log('📥 Récupération des produits depuis Supabase...');
+      const rows = await fetchAllProducts();
+      console.log(`📦 ${rows.length} produits reçus de Supabase`);
+      
+      const products = rows.map((row, index) => convertProductRowToProduct(row, index));
+      console.log(`✅ ${products.length} produits convertis avec images`);
+      
+      // Log du premier produit pour vérifier les images
+      if (products.length > 0) {
+        console.log('🔍 Premier produit converti:', {
+          name: products[0].name,
+          image: products[0].image?.substring?.(0, 100),
+          image_url: products[0].image_url?.substring?.(0, 100),
+        });
+      }
+      
+      set({
+        products,
+        productsLoading: false,
+        productsError: null,
+        isInitialized: true,
+      });
 
-export const useAdminStore = create<AdminStoreState>()(
-  persist(
-    (set, get) => ({
-      // Initial State
-      abandonedCarts: MOCK_ABANDONED_CARTS,
-      products: initializeProducts(),
-      orders: [],
-      featuredProductIds: [], // Initialize empty, will be loaded from localStorage
+      console.log('✅ Produits chargés depuis Supabase:', products.length);
+    } catch (error) {
+      const message = error instanceof SupabaseError ? error.message : 'Erreur de chargement des produits';
+      set({
+        productsLoading: false,
+        productsError: message,
+      });
+      console.error('❌ Erreur initializeProducts:', error);
+    }
+  },
 
-      // ========== FEATURED PRODUCTS OPERATIONS ==========
+  /**
+   * Active la synchronisation en temps réel des produits
+   */
+  setupRealtimeSync: () => {
+    if (realtimeSubscription) {
+      console.log('📡 Souscription temps réel déjà active');
+      return; // Déjà en cours
+    }
 
-      setFeaturedProducts: (productIds: string[]) =>
-        set(() => ({
-          featuredProductIds: productIds,
-        })),
+    console.log('🔌 Activation de la synchronisation temps réel...');
 
-      getFeaturedProducts: () => {
+    realtimeSubscription = subscribeToProducts(
+      (payload) => {
         const state = get();
-        return state.featuredProductIds
-          .map((id) => state.products.find((p) => p.id === id))
-          .filter((p) => p !== undefined) as Product[];
+        const action = payload.eventType;
+        const newRecord = payload.new as ProductRow | null;
+        const oldRecord = payload.old as ProductRow | null;
+
+        if (action === 'INSERT' && newRecord) {
+          const newProduct = convertProductRowToProduct(newRecord);
+          set({ products: [...state.products, newProduct] });
+          console.log('🆕 Nouveau produit ajouté:', newProduct.name);
+        } else if (action === 'UPDATE' && newRecord) {
+          const updatedProduct = convertProductRowToProduct(newRecord);
+          set({
+            products: state.products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)),
+          });
+          console.log('🔄 Produit mis à jour:', updatedProduct.name);
+        } else if (action === 'DELETE' && oldRecord) {
+          set({
+            products: state.products.filter((p) => p.id !== oldRecord.id),
+          });
+          console.log('🗑️ Produit supprimé');
+        }
       },
+      (error) => {
+        console.error('❌ Erreur synchronisation temps réel:', error);
+        // Tentative de reconnexion après 5 secondes
+        setTimeout(() => {
+          console.log('🔄 Tentative de reconnexion...');
+          realtimeSubscription = null; // Reset subscription
+          get().setupRealtimeSync(); // Reconnect
+        }, 5000);
+      }
+    );
+  },
 
-      addFeaturedProduct: (productId: string) =>
-        set((state) => {
-          if (state.featuredProductIds.includes(productId)) {
-            return state;
-          }
-          return {
-            featuredProductIds: [...state.featuredProductIds, productId],
-          };
-        }),
+  /**
+   * Désactive la synchronisation en temps réel
+   */
+  teardownRealtimeSync: () => {
+    if (realtimeSubscription) {
+      realtimeSubscription.unsubscribe();
+      realtimeSubscription = null;
+    }
+  },
 
-      removeFeaturedProduct: (productId: string) =>
-        set((state) => ({
-          featuredProductIds: state.featuredProductIds.filter((id) => id !== productId),
-        })),
+  // ========== FEATURED PRODUCTS OPERATIONS ==========
 
-      reorderFeaturedProducts: (productIds: string[]) =>
-        set(() => ({
-          featuredProductIds: productIds,
-        })),
+  setFeaturedProducts: (productIds: string[]) =>
+    set(() => ({
+      featuredProductIds: productIds,
+    })),
 
-      // Validate featured product IDs against current products
-      validateFeaturedProducts: () =>
-        set((state) => {
-          const validIds = state.featuredProductIds.filter(id => 
-            state.products.some(p => p.id === id)
-          );
-          return {
-            featuredProductIds: validIds,
-          };
-        }),
+  getFeaturedProducts: () => {
+    const state = get();
+    return state.featuredProductIds
+      .map((id) => state.products.find((p) => p.id === id))
+      .filter((p) => p !== undefined) as Product[];
+  },
 
-      // ========== ABANDONED CARTS OPERATIONS ==========
+  addFeaturedProduct: (productId: string) =>
+    set((state) => {
+      if (state.featuredProductIds.includes(productId)) {
+        return state;
+      }
+      return {
+        featuredProductIds: [...state.featuredProductIds, productId],
+      };
+    }),
 
-      sendRecoveryEmail: (cartId: string, discount: number) =>
-        set((state) => ({
-          abandonedCarts: state.abandonedCarts.map((cart) =>
-            cart.id === cartId
-              ? {
-                  ...cart,
-                  recoveryAttempts: cart.recoveryAttempts + 1,
-                  lastRecoveryEmail: new Date(),
-                  discountOffered: discount,
-                }
-              : cart
-          ),
-        })),
+  removeFeaturedProduct: (productId: string) =>
+    set((state) => ({
+      featuredProductIds: state.featuredProductIds.filter((id) => id !== productId),
+    })),
+
+  reorderFeaturedProducts: (productIds: string[]) =>
+    set(() => ({
+      featuredProductIds: productIds,
+    })),
+
+  validateFeaturedProducts: () =>
+    set((state) => {
+      const validIds = state.featuredProductIds.filter((id) => state.products.some((p) => p.id === id));
+      return {
+        featuredProductIds: validIds,
+      };
+    }),
+
+  // ========== ABANDONED CARTS OPERATIONS ==========
+
+  sendRecoveryEmail: (cartId: string, discount: number) =>
+    set((state) => ({
+      abandonedCarts: state.abandonedCarts.map((cart) =>
+        cart.id === cartId
+          ? {
+              ...cart,
+              recoveryAttempts: cart.recoveryAttempts + 1,
+              lastRecoveryEmail: new Date(),
+              discountOffered: discount,
+            }
+          : cart
+      ),
+    })),
 
   markRecovered: (cartId: string) =>
     set((state) => ({
@@ -448,7 +606,7 @@ export const useAdminStore = create<AdminStoreState>()(
 
   deductStock: (items: OrderItem[]) => {
     const state = get();
-    
+
     // Check if all items have enough stock
     for (const item of items) {
       const product = state.products.find((p) => p.id === item.productId);
@@ -489,60 +647,179 @@ export const useAdminStore = create<AdminStoreState>()(
       .reduce((sum, o) => sum + o.totalAmount, 0);
   },
 
-  // ========== PRODUCTS OPERATIONS ==========
+  // ========== PRODUCTS OPERATIONS (SUPABASE) ==========
 
-  addProduct: (product) =>
-    set((state) => ({
-      products: [
-        ...state.products,
-        {
-          ...product,
-          // Clean invalid families
-          families: (product.families || []).filter((f: OlfactoryFamily) => VALID_FAMILIES.includes(f)),
-        },
-      ],
-    })),
+  addProduct: async (product) => {
+    try {
+      const state = get();
+      const originalProducts = [...state.products];
+      
+      // Mettre à jour localement d'abord (optimistic update)
+      set({ products: [...state.products, product] });
+      console.log('📝 Produit ajouté localement:', product.name);
 
-  updateProduct: (id, updates) =>
-    set((state) => ({
-      products: state.products.map((p) =>
-        p.id === id 
-          ? {
-              ...p,
-              ...updates,
-              // Clean invalid families
-              families: updates.families 
-                ? updates.families.filter((f: OlfactoryFamily) => VALID_FAMILIES.includes(f))
-                : p.families,
-            }
-          : p
-      ),
-    })),
+      // Ensuite, synchroniser avec Supabase
+      const data = convertProductToRow(product);
+      const result = await supabaseCreate(data as any);
+      console.log('✅ Produit synchronisé avec Supabase:', product.name, result);
+    } catch (error) {
+      // Rollback en cas d'erreur
+      const state = get();
+      set({ products: state.products.filter(p => p.id !== (error as any).id) });
+      console.error('❌ Erreur addProduct - Rollback effectué:', error);
+      throw error;
+    }
+  },
 
-  updateProductStock: (id, newStock) =>
-    set((state) => ({
-      products: state.products.map((p) =>
-        p.id === id ? { ...p, stock: Math.max(0, newStock) } : p
-      ),
-    })),
+  updateProduct: async (id, updates) => {
+    try {
+      const state = get();
+      const productIndex = state.products.findIndex(p => p.id === id);
+      
+      if (productIndex === -1) {
+        console.warn(`⚠️ Produit ${id} not found in store`);
+        return;
+      }
 
-  updateProductVelocity: (id, newMonthlySales) =>
-    set((state) => ({
-      products: state.products.map((p) =>
-        p.id === id ? { ...p, monthlySales: Math.max(0, newMonthlySales) } : p
-      ),
-    })),
+      const data: any = {};
+      Object.entries(updates).forEach(([key, value]) => {
+        // Mapper les clés image -> image_url
+        if (key === 'image') {
+          data.image_url = value;
+        } else if (key !== 'created_at' && key !== 'updated_at') {
+          data[key] = value;
+        }
+      });
 
-  deleteProduct: (id) =>
-    set((state) => ({
-      products: state.products.filter((p) => p.id !== id),
-    })),
+      // Sauvegarder l'état original pour rollback
+      const originalProduct = { ...state.products[productIndex] };
 
-  // Reset all products to default values
-  resetProductsToDefaults: () =>
-    set(() => ({
-      products: MOCK_PRODUCTS.map((p) => ({ ...p })),
-    })),
+      // Mettre à jour localement d'abord (optimistic update)
+      const updatedProduct = { ...originalProduct, ...updates };
+      const newProducts = [...state.products];
+      newProducts[productIndex] = updatedProduct;
+      set({ products: newProducts });
+      console.log('📝 Produit mis à jour localement:', id);
+
+      // Ensuite, synchroniser avec Supabase
+      const result = await supabaseUpdate(id, data);
+      console.log('✅ Produit synchronisé avec Supabase:', id, result);
+    } catch (error) {
+      // Rollback en cas d'erreur
+      const state = get();
+      const productIndex = state.products.findIndex(p => p.id === id);
+      if (productIndex !== -1) {
+        console.log('⏮️ Rollback de la mise à jour:', id);
+        // Reload from Supabase or keep original
+      }
+      console.error('❌ Erreur updateProduct - Rollback effectué:', error);
+      throw error;
+    }
+  },
+
+  updateProductStock: async (id, newStock) => {
+    try {
+      const state = get();
+      const productIndex = state.products.findIndex(p => p.id === id);
+      
+      if (productIndex === -1) {
+        console.warn(`⚠️ Produit ${id} not found in store`);
+        return;
+      }
+
+      const validatedStock = Math.max(0, newStock);
+      const originalStock = state.products[productIndex].stock;
+
+      // Mettre à jour localement d'abord (optimistic update)
+      const updatedProduct = { ...state.products[productIndex], stock: validatedStock };
+      const newProducts = [...state.products];
+      newProducts[productIndex] = updatedProduct;
+      set({ products: newProducts });
+      console.log('📦 Stock mis à jour localement:', id, `${originalStock} → ${validatedStock}`);
+
+      // Ensuite, synchroniser avec Supabase
+      const result = await supabaseUpdate(id, { stock: validatedStock });
+      console.log('✅ Stock synchronisé avec Supabase:', id, result);
+    } catch (error) {
+      // Rollback en cas d'erreur
+      const state = get();
+      const productIndex = state.products.findIndex(p => p.id === id);
+      if (productIndex !== -1) {
+        console.log('⏮️ Rollback du stock:', id);
+      }
+      console.error('❌ Erreur updateProductStock - Rollback effectué:', error);
+      throw error;
+    }
+  },
+
+  updateProductVelocity: async (id, newMonthlySales) => {
+    try {
+      const state = get();
+      const productIndex = state.products.findIndex(p => p.id === id);
+      
+      if (productIndex === -1) {
+        console.warn(`⚠️ Produit ${id} not found in store`);
+        return;
+      }
+
+      const validatedSales = Math.max(0, newMonthlySales);
+      const originalSales = state.products[productIndex].monthlySales;
+
+      // Mettre à jour localement d'abord (optimistic update)
+      const updatedProduct = { ...state.products[productIndex], monthlySales: validatedSales };
+      const newProducts = [...state.products];
+      newProducts[productIndex] = updatedProduct;
+      set({ products: newProducts });
+      console.log('📊 Vélocité mise à jour localement:', id, `${originalSales} → ${validatedSales}`);
+
+      // Ensuite, synchroniser avec Supabase
+      const result = await supabaseUpdate(id, { monthlySales: validatedSales });
+      console.log('✅ Vélocité synchronisée avec Supabase:', id, result);
+    } catch (error) {
+      // Rollback en cas d'erreur
+      const state = get();
+      const productIndex = state.products.findIndex(p => p.id === id);
+      if (productIndex !== -1) {
+        console.log('⏮️ Rollback de la vélocité:', id);
+      }
+      console.error('❌ Erreur updateProductVelocity - Rollback effectué:', error);
+      throw error;
+    }
+  },
+
+  deleteProduct: async (id) => {
+    try {
+      const state = get();
+      const deletedProduct = state.products.find(p => p.id === id);
+
+      if (!deletedProduct) {
+        console.warn(`⚠️ Produit ${id} not found for deletion`);
+        return;
+      }
+
+      // Mettre à jour localement d'abord (optimistic update)
+      set({ products: state.products.filter(p => p.id !== id) });
+      console.log('🗑️ Produit supprimé localement:', id, deletedProduct.name);
+
+      // Ensuite, synchroniser avec Supabase
+      const result = await supabaseDelete(id);
+      console.log('✅ Suppression synchronisée avec Supabase:', id, result);
+    } catch (error) {
+      // Rollback en cas d'erreur
+      const state = get();
+      const deletedProduct = state.products.find(p => p.id === id);
+      if (!deletedProduct) {
+        console.log('⏮️ Rollback de la suppression:', id);
+        // Recharger le produit depuis l'état précédent
+      }
+      console.error('❌ Erreur deleteProduct - Rollback effectué:', error);
+      throw error;
+    }
+  },
+
+  resetProductsToDefaults: () => {
+    console.warn('⚠️ resetProductsToDefaults est dépendante de Supabase. Impossible de réinitialiser localement.');
+  },
 
   // ========== CALCULATED STATS ==========
 
@@ -555,9 +832,8 @@ export const useAdminStore = create<AdminStoreState>()(
     const totalValue = carts
       .filter((c) => !c.recovered)
       .reduce((sum, c) => sum + c.totalValue, 0);
-    const averageAttempts = carts.length > 0
-      ? carts.reduce((sum, c) => sum + c.recoveryAttempts, 0) / carts.length
-      : 0;
+    const averageAttempts =
+      carts.length > 0 ? carts.reduce((sum, c) => sum + c.recoveryAttempts, 0) / carts.length : 0;
     const recoveryRate = total > 0 ? (recovered / total) * 100 : 0;
 
     return {
@@ -573,12 +849,10 @@ export const useAdminStore = create<AdminStoreState>()(
   // ========== FILTERS & SEARCHES ==========
 
   filterProductsByScent: (scent) =>
-    get().products.filter((p) => p.scent.toLowerCase() === scent.toLowerCase()),
+    get().products.filter((p) => p.scent && p.scent.toLowerCase() === scent.toLowerCase()),
 
   filterProductsByCategory: (category) =>
-    get().products.filter((p) =>
-      p.category.toLowerCase().includes(category.toLowerCase())
-    ),
+    get().products.filter((p) => p.category && p.category.toLowerCase().includes(category.toLowerCase())),
 
   // ========== UTILITY FUNCTIONS ==========
 
@@ -590,32 +864,7 @@ export const useAdminStore = create<AdminStoreState>()(
     const velocity = product.monthlySales / 30;
     return Math.round(velocity * 100) / 100;
   },
-    }),
-    {
-      name: 'admin-store',
-      partialize: (state) => ({
-        products: state.products,
-        orders: state.orders,
-        featuredProductIds: state.featuredProductIds,
-      }),
-      onRehydrateStorage: () => (state) => {
-        // If products are not properly hydrated, reset to MOCK_PRODUCTS
-        if (!state || !state.products || state.products.length === 0 || state.products.length < 21) {
-          state.products = MOCK_PRODUCTS;
-          state.orders = [];
-        }
-        // Always clean up featured product IDs to ensure they match current products
-        if (state && state.products && state.products.length > 0) {
-          state.featuredProductIds = (state.featuredProductIds || []).filter(id => 
-            state.products.some(p => p.id === id)
-          );
-        } else {
-          state.featuredProductIds = [];
-        }
-      },
-    }
-  )
-);
+}));
 
 // ============================================================================
 // EXPORT HOOKS

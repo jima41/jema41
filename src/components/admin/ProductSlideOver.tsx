@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, ChevronDown, Search } from 'lucide-react';
+import { X, ChevronDown, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { useAdminStore, Product, classifyPerfume } from '@/store/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
+import useSupabaseErrorHandler from '@/hooks/use-supabase-error';
 import { getTeteNoteIds, getCoeurNoteIds, getFondNoteIds } from '@/lib/olfactory';
 import type { TeteNote, CoeurNote, FondNote, OlfactoryFamily } from '@/lib/olfactory';
 
@@ -34,6 +35,9 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
 }) => {
   const { addProduct, updateProduct } = useAdminStore();
   const { toast } = useToast();
+  const { handleError, handleSuccess } = useSupabaseErrorHandler();
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -146,8 +150,10 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
+
+    setIsSubmitting(true);
 
     try {
       const productData = {
@@ -165,26 +171,18 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           id: generateId(),
           ...productData,
         };
-        addProduct(newProduct);
-        toast({
-          title: 'Succès',
-          description: 'Produit ajouté avec succès ✨',
-        });
+        await addProduct(newProduct);
+        handleSuccess('Produit ajouté avec succès ✨', 'Succès');
       } else if (product) {
-        updateProduct(product.id, productData);
-        toast({
-          title: 'Succès',
-          description: 'Produit modifié avec succès ✨',
-        });
+        await updateProduct(product.id, productData);
+        handleSuccess('Produit modifié avec succès ✨', 'Succès');
       }
 
       onClose();
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue lors de la sauvegarde.',
-        variant: 'destructive',
-      });
+      handleError(error, 'Une erreur est survenue lors de la sauvegarde du produit');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -603,9 +601,17 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           </Button>
           <Button
             onClick={handleSave}
-            className="flex-1 bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:from-amber-300 hover:to-amber-400 font-semibold"
+            disabled={isSubmitting}
+            className="flex-1 bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:from-amber-300 hover:to-amber-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {mode === 'add' ? 'Créer' : 'Modifier'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {'Sauvegarde...'}
+              </>
+            ) : (
+              mode === 'add' ? 'Créer' : 'Modifier'
+            )}
           </Button>
         </div>
       </div>
