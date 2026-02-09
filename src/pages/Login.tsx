@@ -17,9 +17,17 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
   const { trackPageView, trackPageExit } = useAnalytics();
+
+  // Si l'utilisateur est déjà connecté, rediriger vers l'accueil
+  useEffect(() => {
+    if (user) {
+      console.log('🔐 Login: Utilisateur connecté, redirection vers /');
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     trackPageView('/login', 'Connexion');
@@ -39,10 +47,8 @@ const Login = () => {
       );
 
       await Promise.race([loginPromise, timeoutPromise]);
-      
-      // Petit délai pour laisser React processeurs les state updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-      navigate('/');
+      // La navigation est gérée par le useEffect qui observe user
+      // setIsLoading reste true jusqu'à la navigation
     } catch (err) {
       console.error('❌ handleSubmit error:', err);
       const msg = err instanceof Error ? err.message : 'Erreur de connexion';

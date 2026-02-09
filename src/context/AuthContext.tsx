@@ -100,76 +100,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const userRef = useRef<User | null>(null);
-  const loginInProgress = useRef(false);
 
   // Garder userRef synchronisé avec user
   useEffect(() => {
     userRef.current = user;
+    console.log('🔐 [AuthProvider] user state changed:', user ? `${user.username} (${user.role})` : 'null');
   }, [user]);
 
   // Écouter les changements de session Supabase Auth
   useEffect(() => {
     let mounted = true;
 
-    // 1. Récupérer la session existante
-    const initSession = async () => {
-      try {
-        console.log('🔐 initSession: Vérification de la session...');
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session?.user && mounted) {
-          console.log('🔐 initSession: Session trouvée pour', session.user.email);
-          const profile = await fetchUserProfile(session.user.id, session.user.email || '');
-          if (mounted) setUser(profile);
-        } else {
-          console.log('🔐 initSession: Pas de session existante');
-        }
-      } catch (err) {
-        console.error('❌ Erreur initSession:', err);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    initSession();
-
-    // 2. Écouter les changements d'état auth (login, logout, token refresh)
+    // Écouter les changements d'état auth (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth event:', event, 'loginInProgress:', loginInProgress.current);
+        console.log('🔐 Auth event:', event, 'session:', !!session);
 
-        // Si le login est en cours, on laisse la fonction login gérer le profil
-        if (loginInProgress.current) {
-          console.log('🔐 Auth event ignoré (login en cours)');
-          return;
-        }
+        if (!mounted) return;
 
-        // Ignorer INITIAL_SESSION car initSession() le gère déjà
-        if (event === 'INITIAL_SESSION') {
-          console.log('🔐 INITIAL_SESSION ignoré (géré par initSession)');
-          return;
-        }
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          const profile = await fetchUserProfile(session.user.id, session.user.email || '');
-          if (mounted) {
-            setUser(profile);
-            setIsLoading(false);
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            // Éviter de recharger si l'utilisateur est déjà le même
+            if (userRef.current?.id === session.user.id) {
+              console.log('🔐 Utilisateur déjà chargé, skip');
+              setIsLoading(false);
+              return;
+            }
+            try {
+              const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+              if (mounted) {
+                console.log('🔐 Profil chargé via auth event:', profile.username);
+                setUser(profile);
+              }
+            } catch (err) {
+              console.error('🔐 Erreur chargement profil via auth event:', err);
+              if (mounted) {
+                setUser(buildFallbackProfile(session.user.id, session.user.email || ''));
+              }
+            }
           }
+          if (mounted) setIsLoading(false);
         } else if (event === 'SIGNED_OUT') {
           if (mounted) {
             setUser(null);
             setIsLoading(false);
           }
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          // Session rafraîchie, ne rien changer si l'utilisateur est déjà chargé
-          if (!userRef.current && mounted) {
-            const profile = await fetchUserProfile(session.user.id, session.user.email || '');
-            if (mounted) setUser(profile);
-          }
         }
       }
     );
+
+    // Charger la session existante au démarrage
+    // Note: getSession() déclenche INITIAL_SESSION dans onAuthStateChange
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session && mounted) {
+        // Pas de session, finir le chargement
+        setIsLoading(false);
+      }
+      // Si session existe, onAuthStateChange INITIAL_SESSION va la traiter
+    });
 
     return () => {
       mounted = false;
@@ -178,7 +166,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback(async (identifier: string, password: string) => {
-    loginInProgress.current = true;
     setIsLoading(true);
     try {
       // Déterminer si l'identifiant est un email ou un pseudo
@@ -191,11 +178,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Méthode 1 : via fonction RPC (bypass RLS)
         try {
-          console.log('🔐 login: Tentative RPC get_email_by_username...');
           const { data: emailResult, error: rpcError } = await supabase
             .rpc('get_email_by_username', { p_username: email });
           
-          console.log('🔐 login: RPC résultat', { emailResult, rpcError: rpcError?.message });
           if (!rpcError && emailResult) {
             foundEmail = emailResult as string;
           }
@@ -206,7 +191,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Méthode 2 : fallback requête directe sur profiles
         if (!foundEmail) {
           try {
-            console.log('🔐 login: Tentative fallback direct profiles...');
             const { data: profileData } = await supabase
               .from('profiles')
               .select('email')
@@ -225,7 +209,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw new Error('Pseudo introuvable. Vérifiez votre pseudo ou utilisez votre email.');
         }
         email = foundEmail;
-        console.log('🔐 login: Email trouvé via pseudo:', email);
       }
 
       console.log('🔐 login: signInWithPassword...');
@@ -233,7 +216,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
       });
-      console.log('🔐 login: signIn résultat', { userId: data?.user?.id, error: error?.message });
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -245,14 +227,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(error.message);
       }
 
+      // signInWithPassword déclenche onAuthStateChange SIGNED_IN
+      // qui va charger le profil et faire setUser.
+      // On s'assure aussi manuellement que le profil est chargé ici
+      // pour que le state soit mis à jour avant le retour de login().
       if (data.user) {
-        console.log('🔐 login: fetchUserProfile...');
         try {
           const profile = await fetchUserProfile(data.user.id, data.user.email || '');
-          console.log('🔐 login: Profil chargé', { username: profile.username, role: profile.role });
+          console.log('🔐 login: Profil chargé directement:', profile.username);
           setUser(profile);
         } catch (profileErr) {
-          // Profil fallback si tout échoue - ne pas bloquer le login
           console.error('🔐 login: Erreur profil, utilisation du fallback', profileErr);
           setUser(buildFallbackProfile(data.user.id, data.user.email || ''));
         }
@@ -261,13 +245,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('🔐 login: Terminé avec succès');
     } catch (err) {
       console.error('🔐 login: Erreur', err);
-      throw err;
-    } finally {
-      // Différer le reset pour laisser onAuthStateChange ignorer l'event SIGNED_IN
-      setTimeout(() => {
-        loginInProgress.current = false;
-      }, 2000);
       setIsLoading(false);
+      throw err;
     }
   }, []);
 
