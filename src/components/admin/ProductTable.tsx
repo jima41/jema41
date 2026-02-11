@@ -104,24 +104,24 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 items-end">
-        <div className="flex-1">
-          <label className="text-sm font-medium text-admin-text-secondary mb-2 block font-montserrat tracking-tight">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-end">
+        <div className="flex-1 w-full sm:w-auto">
+          <label className="text-xs sm:text-sm font-medium text-admin-text-secondary mb-1.5 md:mb-2 block font-montserrat tracking-tight">
             Rechercher produit
           </label>
           <Input
             placeholder="Nom ou marque..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-admin-card border-admin-border"
+            className="bg-admin-card border-admin-border text-xs sm:text-sm h-9 md:h-10"
           />
         </div>
-        <div className="text-sm text-admin-text-secondary font-montserrat tracking-tight">
+        <div className="text-xs sm:text-sm text-admin-text-secondary font-montserrat tracking-tight">
           {filteredItems.length} produit{filteredItems.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      <div className="rounded-lg border border-admin-border overflow-hidden">
+      <div className="rounded-lg border border-admin-border overflow-hidden overflow-x-auto -mx-4 sm:mx-0">
         <Table>
           <TableHeader>
             <TableRow className="bg-admin-card/50 hover:bg-admin-card/50">
@@ -348,7 +348,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   setDeleteConfirm(null);
                 }
               }}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-900/50 hover:bg-red-900/70 text-red-300 border border-red-700/50"
             >
               Supprimer
             </AlertDialogAction>

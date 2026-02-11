@@ -51,7 +51,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-              className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="md:hidden p-2 hover:bg-[#C4A97D]/10 rounded-lg transition-colors"
             >
               {isMobileSidebarOpen ? (
                 <X className="w-5 h-5 text-admin-gold" />

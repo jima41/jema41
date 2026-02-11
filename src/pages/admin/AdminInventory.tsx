@@ -30,9 +30,8 @@ const AdminInventory = () => {
   };
 
   const handleEditProduct = (item: StockItem) => {
-    setSlideOverMode('edit');
     setSelectedItem(item);
-    setIsSlideOverOpen(true);
+    setDialogOpen(true);
   };
 
   const handleResetToDefaults = () => {

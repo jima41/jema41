@@ -75,13 +75,13 @@ const MobileOrderCard: React.FC<MobileOrderCardProps> = ({ item, onView, onDelet
         <div className="flex gap-2">
           <button
             onClick={() => onView?.(item.id)}
-            className="p-2 hover:bg-white/10 rounded transition-colors text-admin-text-secondary hover:text-admin-gold"
+            className="p-2 hover:bg-[#C4A97D]/10 rounded transition-colors text-admin-text-secondary hover:text-admin-gold"
           >
             <Eye className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete?.(item.id)}
-            className="p-2 hover:bg-white/10 rounded transition-colors text-red-400 hover:text-red-300"
+            className="p-2 hover:bg-red-500/10 rounded transition-colors text-red-400 hover:text-red-300"
           >
             <Trash2 className="w-4 h-4" />
           </button>

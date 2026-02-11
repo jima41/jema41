@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-type OlfactoryFamily = 'gourmand' | 'frais' | 'épicé' | 'boisé';
+type OlfactoryFamily = 'gourmand' | 'frais' | 'épicé' | 'boisé' | 'floral' | 'oriental' | 'cuiré';
 
 interface QuizOption {
   id: OlfactoryFamily;
@@ -47,6 +47,30 @@ const quizOptions: QuizOption[] = [
     imageAlt: 'Flacon de parfum posé sur du bois',
     gradient: 'from-emerald-100 to-green-100',
   },
+  {
+    id: 'floral',
+    title: 'Floral',
+    description: 'Notes florales, délicates et romantiques',
+    imageSrc: 'http://www.image-heberg.fr/files/17704237022363089774.png',
+    imageAlt: 'Flacon de parfum entouré de fleurs',
+    gradient: 'from-pink-100 to-fuchsia-100',
+  },
+  {
+    id: 'oriental',
+    title: 'Oriental',
+    description: 'Notes ambrées, sensuelles et mystérieuses',
+    imageSrc: 'http://www.image-heberg.fr/files/17704237922198395105.png',
+    imageAlt: 'Flacon de parfum aux notes orientales',
+    gradient: 'from-yellow-100 to-amber-100',
+  },
+  {
+    id: 'cuiré',
+    title: 'Cuiré',
+    description: 'Notes de cuir, fumées et caractérielles',
+    imageSrc: 'http://www.image-heberg.fr/files/17704237022363089774.png',
+    imageAlt: 'Flacon de parfum aux accents cuirés',
+    gradient: 'from-stone-100 to-zinc-100',
+  },
 ];
 
 const FragranceQuiz = () => {
@@ -80,7 +104,7 @@ const FragranceQuiz = () => {
         </div>
 
         {/* Quiz Options */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 md:gap-5 max-w-6xl mx-auto mb-8">
           {quizOptions.map((option) => (
             <button
               key={option.id}

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, Heart } from 'lucide-react';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuth } from '@/context/AuthContext';
-import type { TeteNote, CoeurNote, FondNote, OlfactoryFamily } from '@/lib/olfactory';
+import type { OlfactoryFamily } from '@/lib/olfactory';
 
 interface ProductCardProps {
   id: string;
@@ -17,9 +17,9 @@ interface ProductCardProps {
   notes?: string[];
   stock: number;
   onAddToCart: (id: string) => void;
-  notes_tete?: TeteNote[];
-  notes_coeur?: CoeurNote[];
-  notes_fond?: FondNote[];
+  notes_tete?: string[];
+  notes_coeur?: string[];
+  notes_fond?: string[];
   families?: OlfactoryFamily[];
 }
 
@@ -107,16 +107,9 @@ const ProductCard = ({
       }}
       style={{ cursor: !isOutOfStock ? 'pointer' : 'default' }}
     >
-      {/* DEBUG: Show if image is present */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-1 right-1 z-50 text-xs bg-black bg-opacity-70 text-white px-1 py-0.5 rounded">
-          {image ? '🖼️' : '❌'}
-        </div>
-      )}
-      
       {/* Image Container */}
       <motion.div 
-        className="relative aspect-square overflow-hidden rounded-lg bg-secondary/30 mb-2"
+        className="relative aspect-square overflow-hidden rounded-lg md:rounded-xl bg-secondary/30 mb-2 md:mb-3"
         whileHover={{ scale: 1.02 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
       >
@@ -177,7 +170,7 @@ const ProductCard = ({
             e.stopPropagation();
             handleToggleFavorite(e);
           }}
-          className="absolute top-3 right-3 p-2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm transition-all duration-300 z-10"
+          className="absolute top-2 md:top-3 right-2 md:right-3 p-1.5 md:p-2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm transition-all duration-300 z-10 active:scale-95"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
@@ -185,7 +178,7 @@ const ProductCard = ({
         >
           <Heart
             strokeWidth={2}
-            className={`w-5 h-5 transition-all duration-300 ${
+            className={`w-4 md:w-5 h-4 md:h-5 transition-all duration-300 ${
               isFaved 
                 ? 'fill-red-500 text-red-500' 
                 : 'text-white hover:text-[#D4AF37]'

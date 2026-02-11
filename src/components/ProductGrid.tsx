@@ -65,22 +65,22 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
   };
 
   return (
-    <section id="notre-selection" className="py-16 md:py-24">
+    <section id="notre-selection" className="py-12 md:py-16 lg:py-24 px-4 md:px-0">
       <div className="container mx-auto">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="font-serif text-3xl md:text-4xl font-normal mb-4 text-foreground">Notre Sélection</h2>
-          <p className="text-sm text-foreground/70 max-w-md mx-auto">
-            Des fragrances d'exception pour chaque personnalité
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-normal mb-2 md:mb-4 text-foreground">Notre Selection</h2>
+          <p className="text-xs md:text-sm text-foreground/70 max-w-md mx-auto">
+            Des fragrances d'exception pour chaque personnalite
           </p>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-6 mb-12">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-8 md:mb-12">
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
+        {/* Product Grid - Mobile optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
           {displayProducts.map((product, index) => {
             const storeProduct = storeProducts.find(p => p.id === product.id);
             return (
@@ -110,10 +110,10 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
         </div>
 
         {/* View All Button */}
-        <div className="text-center mt-16">
+        <div className="text-center mt-12 md:mt-16">
           <motion.button
             onClick={() => navigate('/all-products')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border/40 hover:border-border/80 hover:bg-secondary/30 transition-all text-sm font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 md:py-3 rounded-lg border border-border/40 hover:border-border/80 hover:bg-secondary/30 transition-all text-xs md:text-sm font-medium"
             whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}

@@ -111,67 +111,85 @@ export type OlfactoryFamily =
 /**
  * ALGORITHME DE CLASSIFICATION AUTOMATIQUE
  * Analyse les notes pour déterminer la famille olfactive
+ * Fonctionne avec les clés internes ET les labels textuels
  * Priorité : Fond > Cœur > Tête
  */
 export const classifyPerfume = (
-  notes_tete: TeteNote[] = [],
-  notes_coeur: CoeurNote[] = [],
-  notes_fond: FondNote[] = []
+  notes_tete: string[] = [],
+  notes_coeur: string[] = [],
+  notes_fond: string[] = []
 ): OlfactoryFamily[] => {
   const families: Set<OlfactoryFamily> = new Set();
 
   // Combiner toutes les notes avec priorité Fond > Cœur > Tête
-  const allNotes = [...notes_fond, ...notes_coeur, ...notes_tete];
+  // Normalise en minuscules pour correspondre avec les clés et les labels
+  const allNotes = [...notes_fond, ...notes_coeur, ...notes_tete].map(n => n.toLowerCase());
 
-  // Floral : Rose, Jasmin, Iris, Tubéreuse, Pivoine, Magnolia
-  if (allNotes.some(n =>
-    ['rose_mai', 'rose_damascena', 'jasmin_sambac', 'jasmin_espagne', 'iris_toscane', 
-     'tuberose', 'pivoine', 'magnolia', 'freesia'].includes(n as string)
-  )) {
+  // Floral
+  const floralKeywords = [
+    'rose', 'jasmin', 'iris', 'tuberose', 'tubéreuse', 'pivoine', 'magnolia', 'freesia',
+    'rose_mai', 'rose_damascena', 'jasmin_sambac', 'jasmin_espagne', 'iris_toscane',
+    'fleur d\'oranger', 'ylang', 'géranium', 'geranium', 'gardénia', 'gardenia',
+    'violette', 'cyclamen', 'muguet', 'fleur de lys', 'néroli', 'neroli',
+  ];
+  if (allNotes.some(n => floralKeywords.some(k => n.includes(k)))) {
     families.add('Floral');
   }
 
-  // Boisé : Santal, Cèdre, Vétiver, Oud, Patchouli, Mousse de chêne
-  if (allNotes.some(n =>
-    ['bois_santal', 'cedre_atlas', 'cedre_virginie', 'vetiver_haiti', 'oud', 
-     'patchouli', 'mousse_chene'].includes(n as string)
-  )) {
+  // Boisé
+  const boiseKeywords = [
+    'santal', 'cèdre', 'cedre', 'vétiver', 'vetiver', 'oud', 'patchouli', 'mousse de chêne',
+    'bois_santal', 'cedre_atlas', 'cedre_virginie', 'vetiver_haiti', 'mousse_chene',
+    'bois de santal', 'bois',
+  ];
+  if (allNotes.some(n => boiseKeywords.some(k => n.includes(k)))) {
     families.add('Boisé');
   }
 
-  // Gourmand : Vanille, Caramel, Chocolat, Praliné, Miel, Fève Tonka
-  if (allNotes.some(n =>
-    ['vanille_bourbon', 'gousse_vanille', 'feve_tonka', 'caramel', 'chocolat_noir', 
-     'praline', 'miel'].includes(n as string)
-  )) {
+  // Gourmand
+  const gourmandKeywords = [
+    'vanille', 'caramel', 'chocolat', 'praliné', 'praline', 'miel', 'fève tonka', 'feve_tonka',
+    'vanille_bourbon', 'gousse_vanille', 'chocolat_noir', 'café', 'cafe', 'noix de coco', 'tonka',
+  ];
+  if (allNotes.some(n => gourmandKeywords.some(k => n.includes(k)))) {
     families.add('Gourmand');
   }
 
-  // Oriental/Ambré : Ambre, Encens, Myrrhe, Benjoin, Oud
-  if (allNotes.some(n =>
-    ['ambre_gris', 'ambre_jaune', 'encens', 'myrrhe', 'benjoin', 'oud'].includes(n as string)
-  )) {
+  // Oriental/Ambré
+  const orientalKeywords = [
+    'ambre', 'encens', 'myrrhe', 'benjoin', 'musc', 'ciste', 'labdanum',
+    'ambre_gris', 'ambre_jaune', 'musc_blanc', 'ciste_labdanum',
+  ];
+  if (allNotes.some(n => orientalKeywords.some(k => n.includes(k)))) {
     families.add('Oriental');
   }
 
-  // Épicé : Poivre, Cannelle, Cardamome, Safran, Clou de girofle, Muscade
-  if (allNotes.some(n =>
-    ['poivre_rose', 'cannelle', 'cardamome', 'safran', 'clou_girofle', 'muscade'].includes(n as string)
-  )) {
+  // Épicé
+  const epiceKeywords = [
+    'poivre', 'cannelle', 'cardamome', 'safran', 'girofle', 'muscade', 'gingembre',
+    'poivre_rose', 'clou_girofle',
+  ];
+  if (allNotes.some(n => epiceKeywords.some(k => n.includes(k)))) {
     families.add('Épicé');
   }
 
-  // Cuiré : Cuir, Daim, Tabac
-  if (allNotes.some(n =>
-    ['cuir', 'daim', 'tabac_blond'].includes(n as string)
-  )) {
+  // Cuiré
+  const cuireKeywords = [
+    'cuir', 'daim', 'tabac', 'suede',
+    'tabac_blond', 'castorium', 'civette',
+  ];
+  if (allNotes.some(n => cuireKeywords.some(k => n.includes(k)))) {
     families.add('Cuiré');
   }
 
-  // Frais/Aquatique : Accord marin, Calone, Menthe, Aldéhydes
-  if (allNotes.some(n =>
-    ['accord_marin', 'calone', 'menthe_poivree', 'aldehydes', 'pomme_verte'].includes(n as string)
-  )) {
+  // Frais/Aquatique
+  const fraisKeywords = [
+    'marin', 'calone', 'menthe', 'aldéhyde', 'aldehyde', 'pomme verte',
+    'accord_marin', 'menthe_poivree', 'aldehydes', 'pomme_verte',
+    'citron', 'bergamote', 'mandarine', 'pamplemousse', 'lime', 'yuzu',
+    'verveine', 'citronnelle', 'lavande', 'rhubarbe',
+  ];
+  if (allNotes.some(n => fraisKeywords.some(k => n.includes(k)))) {
     families.add('Frais/Aquatique');
   }
 

@@ -13,6 +13,10 @@ interface CartContextType {
   updateQuantity: (id: string, quantity: number) => void;
   removeItem: (id: string) => void;
   setIsCartOpen: (open: boolean) => void;
+  promoCode: string | null;
+  promoDiscount: number;
+  setPromoCode: (code: string, discount: number) => void;
+  clearPromoCode: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -38,6 +42,10 @@ export const useCart = () => {
     updateQuantity,
     removeItem,
     setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    setPromoCode,
+    clearPromoCode,
   } = useCartStore();
 
   const { user } = useAuth();
@@ -69,5 +77,9 @@ export const useCart = () => {
     updateQuantity,
     removeItem,
     setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    setPromoCode,
+    clearPromoCode,
   };
 };

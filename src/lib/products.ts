@@ -20,6 +20,8 @@ import perfume19 from '@/assets/perfume-19.jpg';
 import perfume20 from '@/assets/perfume-20.jpg';
 import perfume21 from '@/assets/perfume-21.jpg';
 
+export type ProductGender = 'homme' | 'femme' | 'mixte';
+
 export interface Product {
   id: string;
   name: string;
@@ -28,6 +30,7 @@ export interface Product {
   image: string;
   scent: string;
   category: string;
+  gender?: ProductGender;
   description?: string;
   notes?: string[];
   volume?: string;

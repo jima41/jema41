@@ -25,11 +25,11 @@ export interface AbandonedCart {
   clientEmail: string;
   items: AbandonedCartItem[];
   totalValue: number;
-  abandonedAt: Date;
+  abandonedAt: Date | string;
   recoveryAttempts: number;
-  lastRecoveryEmail?: Date;
+  lastRecoveryEmail?: Date | string;
   recovered: boolean;
-  recoveryDate?: Date;
+  recoveryDate?: Date | string;
   discountOffered?: number; // percentage
 }
 
@@ -40,8 +40,9 @@ interface AbandonedCartListProps {
 }
 
 // Calculate hours since abandonment
-const getHoursSinceAbandonment = (date: Date): number => {
-  return Math.round((Date.now() - date.getTime()) / (1000 * 60 * 60));
+const getHoursSinceAbandonment = (date: Date | string): number => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return Math.round((Date.now() - dateObj.getTime()) / (1000 * 60 * 60));
 };
 
 // Determine recovery priority based on hours and attempts
@@ -54,7 +55,8 @@ const getRecoveryPriority = (cart: AbandonedCart) => {
     };
   }
   
-  const hoursSince = (Date.now() - cart.abandonedAt.getTime()) / (1000 * 60 * 60);
+  const abandonedDate = typeof cart.abandonedAt === 'string' ? new Date(cart.abandonedAt) : cart.abandonedAt;
+  const hoursSince = (Date.now() - abandonedDate.getTime()) / (1000 * 60 * 60);
   
   if (hoursSince > 72 || cart.recoveryAttempts >= 3) {
     return { 
@@ -84,14 +86,15 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const formatDate = (date: Date) => {
+const formatDate = (date: Date | string) => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat('fr-FR', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(date);
+  }).format(dateObj);
 };
 
 export const AbandonedCartList: React.FC<AbandonedCartListProps> = ({

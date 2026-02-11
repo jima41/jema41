@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
 import { useAdminStore } from '@/store/useAdminStore';
+import { useCartStore } from '@/store/useCartStore';
+import { usePromoCodesStore } from '@/store/usePromoCodesStore';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * Composant d'initialisation de la synchronisation des données
@@ -12,6 +15,12 @@ export function DataSyncInitializer({ children }: { children: React.ReactNode })
   const isInitialized = useAdminStore((state) => state.isInitialized);
   const productsLoading = useAdminStore((state) => state.productsLoading);
   const products = useAdminStore((state) => state.products);
+
+  // Promo code validation
+  const appliedPromoCode = useCartStore((state) => state.promoCode);
+  const clearPromoCode = useCartStore((state) => state.clearPromoCode);
+  const promoCodes = usePromoCodesStore((state) => state.promoCodes);
+  const { toast } = useToast();
 
   console.log('🟢 [DataSyncInitializer] RENDER', { isInitialized, productsLoading, productsCount: products.length });
 
@@ -46,6 +55,35 @@ export function DataSyncInitializer({ children }: { children: React.ReactNode })
       };
     }
   }, [isInitialized, setupRealtimeSync, teardownRealtimeSync]);
+
+  // Validation automatique du code promo appliqué au panier
+  useEffect(() => {
+    if (!appliedPromoCode) return;
+
+    const promo = promoCodes.find(
+      (p) => p.code === appliedPromoCode
+    );
+
+    if (!promo) {
+      // Le code promo a été supprimé par l'admin
+      clearPromoCode();
+      toast({
+        title: 'Code promo expiré',
+        description: `Le code "${appliedPromoCode}" n'est plus disponible et a été retiré de votre panier.`,
+        variant: 'destructive',
+        duration: 6000,
+      });
+    } else if (!promo.active) {
+      // Le code promo a été désactivé par l'admin
+      clearPromoCode();
+      toast({
+        title: 'Code promo désactivé',
+        description: `Le code "${appliedPromoCode}" a été désactivé et a été retiré de votre panier.`,
+        variant: 'destructive',
+        duration: 6000,
+      });
+    }
+  }, [appliedPromoCode, promoCodes, clearPromoCode, toast]);
 
   return <>{children}</>;
 }

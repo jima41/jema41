@@ -29,12 +29,23 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error('     VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...');
 }
 
+// Nettoyer l'ancienne session Supabase stockée dans localStorage
+// (migration: on utilise désormais sessionStorage pour ne pas auto-connecter)
+try {
+  const keys = Object.keys(localStorage);
+  keys.forEach((key) => {
+    if (key.startsWith('sb-') && (key.endsWith('-auth-token') || key.endsWith('-auth-token-code-verifier'))) {
+      localStorage.removeItem(key);
+    }
+  });
+} catch (_) { /* ignore errors in SSR or restricted environments */ }
+
 export const supabase = createClient<Database>(
   SUPABASE_URL || '',
   SUPABASE_ANON_KEY || '',
   {
     auth: {
-      storage: localStorage,
+      storage: sessionStorage,
       persistSession: true,
       autoRefreshToken: true,
     },
@@ -62,9 +73,10 @@ export interface ProductRow {
   notes_fond: string[];
   families: string[];
   stock: number;
-  monthlySales: number;
+  monthlysales: number;
   volume: string | null;
   category: string | null;
+  gender: string | null;
   scent: string | null;
   created_at: string;
   updated_at: string;
@@ -81,9 +93,10 @@ export interface CreateProductInput {
   notes_fond?: string[];
   families?: string[];
   stock?: number;
-  monthlySales?: number;
+  monthlysales?: number;
   volume?: string;
   category?: string;
+  gender?: string;
   scent?: string;
 }
 
@@ -226,7 +239,7 @@ export async function updateProductMonthlySales(
   id: string,
   newMonthlySales: number
 ): Promise<ProductRow> {
-  return updateProduct(id, { monthlySales: newMonthlySales });
+  return updateProduct(id, { monthlysales: newMonthlySales });
 }
 
 /**

@@ -49,6 +49,7 @@ export interface AnalyticsStats {
   activeVisitors: number;
   todaySessions: number;
   todayPageViews: number;
+  addToCartCounts: Record<string, number>;
   pageStats: {
     path: string;
     title: string;
@@ -76,6 +77,7 @@ interface AnalyticsContextType {
   trackProductView: (productId: string, productName: string) => void;
   trackProductExit: (productId: string) => void;
   trackClick: (path: string, productId?: string) => void;
+  trackAddToCart: (productId: string) => void;
   collectVisitorEmail: (email: string) => void;
   getAllSessions: () => SessionData[];
   getAnalyticsStats: () => AnalyticsStats;
@@ -93,6 +95,16 @@ const AnalyticsContext = createContext<AnalyticsContextType | undefined>(undefin
 
 const STORAGE_KEY = 'rayha_analytics_sessions';
 const SESSION_KEY = 'rayha_current_session';
+const ADD_TO_CART_KEY = 'rayha_analytics_add_to_cart';
+
+const getStoredAddToCartCounts = (): Record<string, number> => {
+  try {
+    const saved = localStorage.getItem(ADD_TO_CART_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
 
 const getStoredSessions = (): SessionData[] => {
   try {
@@ -143,6 +155,7 @@ const isToday = (timestamp: number): boolean => {
 export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
   const [sessions, setSessions] = useState<SessionData[]>(getStoredSessions);
   const [currentSession, setCurrentSession] = useState<SessionData | null>(getSavedSession);
+  const [addToCartCounts, setAddToCartCounts] = useState<Record<string, number>>(getStoredAddToCartCounts);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const sessionRef = useRef<SessionData | null>(currentSession);
@@ -359,6 +372,15 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
     setCurrentSession(prev => prev ? { ...prev, visitorEmail: email, isEmailCollected: true } : prev);
   }, []);
 
+  const trackAddToCart = useCallback((productId: string) => {
+    setAddToCartCounts(prev => {
+      const updated = { ...prev, [productId]: (prev[productId] || 0) + 1 };
+      try { localStorage.setItem(ADD_TO_CART_KEY, JSON.stringify(updated)); } catch { /* full */ }
+      return updated;
+    });
+    setRefreshTick(t => t + 1);
+  }, []);
+
   // ========== STATS ==========
 
   const getAllSessions = useCallback((): SessionData[] => {
@@ -476,6 +498,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
       todayPageViews,
       pageStats: pageStats.sort((a, b) => b.views - a.views),
       productStats: productStats.sort((a, b) => b.views - a.views),
+      addToCartCounts,
       hourlyTraffic: Array.from(hourly).map(([hour, d]) => ({ hour, ...d })),
       deviceBreakdown: Object.entries(deviceCount).map(([device, count]) => ({
         device: device === 'mobile' ? 'Mobile' : device === 'tablet' ? 'Tablette' : 'Desktop',
@@ -489,6 +512,8 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
     setSessions([]);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(ADD_TO_CART_KEY);
+    setAddToCartCounts({});
     setCurrentSession({
       sessionId: generateSessionId(),
       startTime: Date.now(),
@@ -512,6 +537,7 @@ export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
         trackProductView,
         trackProductExit,
         trackClick,
+        trackAddToCart,
         collectVisitorEmail,
         getAllSessions,
         getAnalyticsStats,

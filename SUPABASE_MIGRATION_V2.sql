@@ -212,7 +212,7 @@ DO $$ BEGIN
       ON public.products
       FOR UPDATE
       USING (
-        auth.uid() IN (SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+        auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin')
       );
   END IF;
 END $$;
@@ -223,7 +223,7 @@ DO $$ BEGIN
       ON public.products
       FOR DELETE
       USING (
-        auth.uid() IN (SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+        auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin')
       );
   END IF;
 END $$;
@@ -234,7 +234,7 @@ DO $$ BEGIN
       ON public.products
       FOR INSERT
       WITH CHECK (
-        auth.uid() IN (SELECT id FROM auth.users WHERE raw_user_meta_data->>'role' = 'admin')
+        auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin')
       );
   END IF;
 END $$;

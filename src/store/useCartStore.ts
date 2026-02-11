@@ -29,6 +29,8 @@ interface CartStoreState {
   isCartOpen: boolean;
   isLoading: boolean;
   error: string | null;
+  promoCode: string | null;
+  promoDiscount: number;
 
   // Computations
   cartItemsCount: number;
@@ -53,6 +55,8 @@ interface CartStoreState {
   removeItem: (cartItemId: string) => Promise<void>;
   clearCart: (userId: string) => Promise<void>;
   setIsCartOpen: (open: boolean) => void;
+  setPromoCode: (code: string, discount: number) => void;
+  clearPromoCode: () => void;
 
   // Observers
   getCartItems: () => CartItem[];
@@ -91,6 +95,8 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
   isCartOpen: false,
   isLoading: false,
   error: null,
+  promoCode: null,
+  promoDiscount: 0,
   cartItemsCount: 0,
   cartTotal: 0,
 
@@ -393,6 +399,8 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
         cartItems: [],
         cartItemsCount: 0,
         cartTotal: 0,
+        promoCode: null,
+        promoDiscount: 0,
       });
 
       // Sync avec Supabase
@@ -410,6 +418,18 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
   setIsCartOpen: (open) =>
     set({
       isCartOpen: open,
+    }),
+
+  setPromoCode: (code, discount) =>
+    set({
+      promoCode: code,
+      promoDiscount: discount,
+    }),
+
+  clearPromoCode: () =>
+    set({
+      promoCode: null,
+      promoDiscount: 0,
     }),
 
   // ========== OBSERVERS ==========
@@ -464,6 +484,10 @@ export const useCart = () => {
     removeItem,
     clearCart,
     setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    setPromoCode,
+    clearPromoCode,
     isLoading,
     error,
   } = useCartStore();
@@ -478,6 +502,10 @@ export const useCart = () => {
     removeItem,
     clearCart,
     setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    setPromoCode,
+    clearPromoCode,
     isLoading,
     error,
   };

@@ -1,10 +1,10 @@
 import React from 'react';
-import type { TeteNote, CoeurNote, FondNote, OlfactoryFamily } from '@/lib/olfactory';
+import type { OlfactoryFamily } from '@/lib/olfactory';
 
 interface SimpleOlfactoryDisplayProps {
-  notes_tete?: TeteNote[];
-  notes_coeur?: CoeurNote[];
-  notes_fond?: FondNote[];
+  notes_tete?: string[];
+  notes_coeur?: string[];
+  notes_fond?: string[];
   families?: OlfactoryFamily[];
 }
 
@@ -19,12 +19,12 @@ const VALID_FAMILIES: OlfactoryFamily[] = [
   'Frais/Aquatique',
 ];
 
-// Helper to get readable label from note ID
-const getNoteLabel = (noteId: string): string => {
-  return noteId
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+// Helper: notes are now stored as labels, return as-is or convert legacy snake_case
+const getNoteLabel = (note: string): string => {
+  if (note.includes('_')) {
+    return note.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  }
+  return note;
 };
 
 export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
@@ -67,11 +67,11 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
           Composition Olfactive
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Tête */}
+          {/* Tête - Doré */}
           {notes_tete.length > 0 && (
-            <div className="rounded-lg p-4 border border-border/40 hover:border-border/80 transition-colors">
+            <div className="rounded-lg p-4 border border-[#D4AF37]/40 hover:border-[#D4AF37]/70 transition-colors">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-foreground/50" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
                 Notes de Tête
               </h4>
               <ul className="space-y-2">
@@ -80,22 +80,22 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
                     key={`${note}-${index}`}
                     className="text-sm text-foreground/70 flex items-start gap-2"
                   >
-                    <span className="text-foreground/40 mt-1">•</span>
+                    <span className="text-[#D4AF37] mt-1">•</span>
                     <span>{getNoteLabel(note)}</span>
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/30 italic">
+              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-[#D4AF37]/20 italic">
                 Volatilité : 30 min - 1h
               </p>
             </div>
           )}
 
-          {/* Cœur */}
+          {/* Cœur - Rouge/Violet */}
           {notes_coeur.length > 0 && (
-            <div className="rounded-lg p-4 border border-border/40 hover:border-border/80 transition-colors">
+            <div className="rounded-lg p-4 border border-[#9B2D5B]/40 hover:border-[#9B2D5B]/70 transition-colors">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-foreground/50" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9B2D5B]" />
                 Notes de Cœur
               </h4>
               <ul className="space-y-2">
@@ -104,22 +104,22 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
                     key={`${note}-${index}`}
                     className="text-sm text-foreground/70 flex items-start gap-2"
                   >
-                    <span className="text-foreground/40 mt-1">•</span>
+                    <span className="text-[#9B2D5B] mt-1">•</span>
                     <span>{getNoteLabel(note)}</span>
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/30 italic">
+              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-[#9B2D5B]/20 italic">
                 Signature : 1h - 4h
               </p>
             </div>
           )}
 
-          {/* Fond */}
+          {/* Fond - Bleu marine foncé */}
           {notes_fond.length > 0 && (
-            <div className="rounded-lg p-4 border border-border/40 hover:border-border/80 transition-colors">
+            <div className="rounded-lg p-4 border border-[#0A1128]/40 hover:border-[#0A1128]/70 transition-colors">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-foreground/50" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0A1128]" />
                 Notes de Fond
               </h4>
               <ul className="space-y-2">
@@ -128,12 +128,12 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
                     key={`${note}-${index}`}
                     className="text-sm text-foreground/70 flex items-start gap-2"
                   >
-                    <span className="text-foreground/40 mt-1">•</span>
+                    <span className="text-[#0A1128] mt-1">•</span>
                     <span>{getNoteLabel(note)}</span>
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/30 italic">
+              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-[#0A1128]/20 italic">
                 Sillage : 4h+
               </p>
             </div>

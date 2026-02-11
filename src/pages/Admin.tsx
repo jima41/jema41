@@ -12,7 +12,19 @@ import CartDrawer from '@/components/CartDrawer';
 const Admin = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const {
+    cartItems,
+    cartItemsCount,
+    isCartOpen,
+    addToCart,
+    updateQuantity,
+    removeItem,
+    setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    applyPromoCode,
+    clearPromoCode,
+  } = useCart();
   const { products, addProduct, updateProduct, deleteProduct, trackPageView, getPageStats } = useAdmin();
 
   const [activeTab, setActiveTab] = useState<'products' | 'analytics'>('products');
@@ -393,6 +405,10 @@ const Admin = () => {
         items={cartItems}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+        promoCode={promoCode}
+        promoDiscount={promoDiscount}
+        onApplyPromo={applyPromoCode}
+        onClearPromo={clearPromoCode}
       />
     </div>
   );

@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAdminStore, Product, classifyPerfume } from '@/store/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import useSupabaseErrorHandler from '@/hooks/use-supabase-error';
-import { getTeteNoteIds, getCoeurNoteIds, getFondNoteIds } from '@/lib/olfactory';
-import type { TeteNote, CoeurNote, FondNote, OlfactoryFamily } from '@/lib/olfactory';
+import { useOlfactoryNotesStore } from '@/store/useOlfactoryNotesStore';
+import type { OlfactoryFamily } from '@/lib/olfactory';
 
 interface ProductSlideOverProps {
   isOpen: boolean;
@@ -22,11 +22,6 @@ const generateId = (): string => {
   return `prod-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Utility to get label from note ID
-const getNoteLabel = (noteId: string): string => {
-  return noteId.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-};
-
 export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
   isOpen,
   onClose,
@@ -36,6 +31,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
   const { addProduct, updateProduct } = useAdminStore();
   const { toast } = useToast();
   const { handleError, handleSuccess } = useSupabaseErrorHandler();
+  const { notes: allOlfactoryNotes, getNotesByPyramid } = useOlfactoryNotesStore();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -48,9 +44,10 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
     monthlySales: 50,
     description: '',
     volume: '50ml',
-    notes_tete: [] as TeteNote[],
-    notes_coeur: [] as CoeurNote[],
-    notes_fond: [] as FondNote[],
+    gender: 'mixte' as 'homme' | 'femme' | 'mixte',
+    notes_tete: [] as string[],
+    notes_coeur: [] as string[],
+    notes_fond: [] as string[],
   });
 
   const [calculatedFamilies, setCalculatedFamilies] = useState<OlfactoryFamily[]>([]);
@@ -67,26 +64,26 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
   });
 
 
-  // Filter notes based on search query
+  // Get available notes from the dynamic store, filtered by search
   const filteredTeteNotes = useMemo(
-    () => getTeteNoteIds().filter(note =>
-      getNoteLabel(note).toLowerCase().includes(searchQueries.tete.toLowerCase())
+    () => getNotesByPyramid('tete').filter(note =>
+      note.label.toLowerCase().includes(searchQueries.tete.toLowerCase())
     ),
-    [searchQueries.tete]
+    [searchQueries.tete, allOlfactoryNotes]
   );
 
   const filteredCoeurNotes = useMemo(
-    () => getCoeurNoteIds().filter(note =>
-      getNoteLabel(note).toLowerCase().includes(searchQueries.coeur.toLowerCase())
+    () => getNotesByPyramid('coeur').filter(note =>
+      note.label.toLowerCase().includes(searchQueries.coeur.toLowerCase())
     ),
-    [searchQueries.coeur]
+    [searchQueries.coeur, allOlfactoryNotes]
   );
 
   const filteredFondNotes = useMemo(
-    () => getFondNoteIds().filter(note =>
-      getNoteLabel(note).toLowerCase().includes(searchQueries.fond.toLowerCase())
+    () => getNotesByPyramid('fond').filter(note =>
+      note.label.toLowerCase().includes(searchQueries.fond.toLowerCase())
     ),
-    [searchQueries.fond]
+    [searchQueries.fond, allOlfactoryNotes]
   );
 
   // Calculate families in real-time
@@ -107,6 +104,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
         monthlySales: product.monthlySales,
         description: product.description || '',
         volume: product.volume || '50ml',
+        gender: product.gender || 'mixte',
         notes_tete: product.notes_tete || [],
         notes_coeur: product.notes_coeur || [],
         notes_fond: product.notes_fond || [],
@@ -121,6 +119,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
         monthlySales: 50,
         description: '',
         volume: '50ml',
+        gender: 'mixte',
         notes_tete: [],
         notes_coeur: [],
         notes_fond: [],
@@ -159,9 +158,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
       const productData = {
         ...formData,
         families: calculatedFamilies,
-        scent: [...formData.notes_tete, ...formData.notes_coeur, ...formData.notes_fond]
-          .map(getNoteLabel)
-          .join(', '),
+        scent: [...formData.notes_tete, ...formData.notes_coeur, ...formData.notes_fond].join(', '),
         category: calculatedFamilies[0] || 'Non classifié',
         notes: [...formData.notes_tete, ...formData.notes_coeur, ...formData.notes_fond],
       };
@@ -307,22 +304,22 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
                 <div className="overflow-y-auto">
                   {filteredTeteNotes.map((note) => (
                     <button
-                      key={note}
+                      key={note.id}
                       onClick={() => {
                         setFormData({
                           ...formData,
-                          notes_tete: formData.notes_tete.includes(note)
-                            ? formData.notes_tete.filter(n => n !== note)
-                            : [...formData.notes_tete, note],
+                          notes_tete: formData.notes_tete.includes(note.label)
+                            ? formData.notes_tete.filter(n => n !== note.label)
+                            : [...formData.notes_tete, note.label],
                         });
                       }}
                       className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                        formData.notes_tete.includes(note)
+                        formData.notes_tete.includes(note.label)
                           ? 'bg-amber-500/20 text-amber-400'
                           : 'text-admin-text-secondary hover:bg-admin-border/30'
                       }`}
                     >
-                      {formData.notes_tete.includes(note) ? '✓ ' : '  '}{getNoteLabel(note)}
+                      {formData.notes_tete.includes(note.label) ? '✓ ' : '  '}{note.label}
                     </button>
                   ))}
                 </div>
@@ -331,9 +328,9 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           </div>
           {formData.notes_tete.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {formData.notes_tete.map((note) => (
-                <Badge key={note} variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs">
-                  {getNoteLabel(note)}
+              {formData.notes_tete.map((label) => (
+                <Badge key={label} variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs">
+                  {label}
                 </Badge>
               ))}
             </div>
@@ -379,22 +376,22 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
                 <div className="overflow-y-auto">
                   {filteredCoeurNotes.map((note) => (
                     <button
-                      key={note}
+                      key={note.id}
                       onClick={() => {
                         setFormData({
                           ...formData,
-                          notes_coeur: formData.notes_coeur.includes(note)
-                            ? formData.notes_coeur.filter(n => n !== note)
-                            : [...formData.notes_coeur, note],
+                          notes_coeur: formData.notes_coeur.includes(note.label)
+                            ? formData.notes_coeur.filter(n => n !== note.label)
+                            : [...formData.notes_coeur, note.label],
                         });
                       }}
                       className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                        formData.notes_coeur.includes(note)
+                        formData.notes_coeur.includes(note.label)
                           ? 'bg-amber-500/20 text-amber-400'
                           : 'text-admin-text-secondary hover:bg-admin-border/30'
                       }`}
                     >
-                      {formData.notes_coeur.includes(note) ? '✓ ' : '  '}{getNoteLabel(note)}
+                      {formData.notes_coeur.includes(note.label) ? '✓ ' : '  '}{note.label}
                     </button>
                   ))}
                 </div>
@@ -403,9 +400,9 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           </div>
           {formData.notes_coeur.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {formData.notes_coeur.map((note) => (
-                <Badge key={note} variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs">
-                  {getNoteLabel(note)}
+              {formData.notes_coeur.map((label) => (
+                <Badge key={label} variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs">
+                  {label}
                 </Badge>
               ))}
             </div>
@@ -451,22 +448,22 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
                 <div className="overflow-y-auto">
                   {filteredFondNotes.map((note) => (
                     <button
-                      key={note}
+                      key={note.id}
                       onClick={() => {
                         setFormData({
                           ...formData,
-                          notes_fond: formData.notes_fond.includes(note)
-                            ? formData.notes_fond.filter(n => n !== note)
-                            : [...formData.notes_fond, note],
+                          notes_fond: formData.notes_fond.includes(note.label)
+                            ? formData.notes_fond.filter(n => n !== note.label)
+                            : [...formData.notes_fond, note.label],
                         });
                       }}
                       className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                        formData.notes_fond.includes(note)
+                        formData.notes_fond.includes(note.label)
                           ? 'bg-amber-500/20 text-amber-400'
                           : 'text-admin-text-secondary hover:bg-admin-border/30'
                       }`}
                     >
-                      {formData.notes_fond.includes(note) ? '✓ ' : '  '}{getNoteLabel(note)}
+                      {formData.notes_fond.includes(note.label) ? '✓ ' : '  '}{note.label}
                     </button>
                   ))}
                 </div>
@@ -475,9 +472,9 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           </div>
           {formData.notes_fond.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {formData.notes_fond.map((note) => (
-                <Badge key={note} variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs">
-                  {getNoteLabel(note)}
+              {formData.notes_fond.map((label) => (
+                <Badge key={label} variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs">
+                  {label}
                 </Badge>
               ))}
             </div>
@@ -587,6 +584,33 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
               placeholder="50ml"
               className="bg-admin-card border-admin-border text-admin-text-primary"
             />
+          </div>
+
+          {/* Pour (Gender) */}
+          <div>
+            <Label className="text-admin-text-secondary uppercase text-xs tracking-wide font-montserrat mb-2 block">
+              Pour
+            </Label>
+            <div className="flex gap-2">
+              {([
+                { value: 'homme' as const, label: 'Lui', activeClass: 'bg-[#0A1128]/30 text-[#7B8FAF] border-[#0A1128]/60' },
+                { value: 'femme' as const, label: 'Elle', activeClass: 'bg-[#D4AF37]/30 text-[#D4AF37] border-[#D4AF37]/60' },
+                { value: 'mixte' as const, label: 'Lui & Elle', activeClass: 'bg-gradient-to-r from-[#0A1128]/20 to-[#D4AF37]/20 text-admin-text-primary border-admin-border' },
+              ]).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, gender: option.value })}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-semibold tracking-wide transition-all duration-200 ${
+                    formData.gender === option.value
+                      ? option.activeClass
+                      : 'bg-admin-card border-admin-border text-admin-text-secondary hover:border-admin-border/80'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

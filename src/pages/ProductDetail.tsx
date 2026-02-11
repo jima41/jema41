@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ShoppingCart, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Heart, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -19,7 +19,19 @@ import type { Product } from '@/lib/products';
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const {
+    cartItems,
+    cartItemsCount,
+    isCartOpen,
+    addToCart,
+    updateQuantity,
+    removeItem,
+    setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    applyPromoCode,
+    clearPromoCode,
+  } = useCart();
   const { trackPageView, products } = useAdmin();
   const { products: storeProducts } = useAdminStore();
   const { toast } = useToast();
@@ -34,6 +46,7 @@ const ProductDetail = () => {
   const [touchStart, setTouchStart] = useState(0);
   const [touchCurrent, setTouchCurrent] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   // Get visible products count based on screen size
   const getVisibleCount = () => {
@@ -176,7 +189,8 @@ const ProductDetail = () => {
     }
     
     const { description, notes, volume, ...productData } = product!;
-    addToCart(productData as any);
+    addToCart(productData as any, quantity);
+    setQuantity(1);
   };
 
   const handleToggleFavorite = () => {
@@ -194,23 +208,23 @@ const ProductDetail = () => {
     <div className="min-h-screen flex flex-col">
       <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
-      <main className="flex-1 py-8 md:py-16">
-        <div className="container mx-auto">
+      <main className="flex-1 py-8 md:py-12 lg:py-16">
+        <div className="container mx-auto px-4 md:px-6 lg:px-0">
           {/* Breadcrumb / Back Button */}
           <button
             onClick={() => navigate('/all-products')}
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
+            className="inline-flex items-center gap-2 md:gap-3 text-muted-foreground hover:text-foreground transition-colors mb-6 md:mb-8 min-h-10 px-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Retour aux parfums
           </button>
 
           {/* Product Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 lg:gap-16 mb-12 md:mb-16 lg:mb-24">
             {/* Product Image */}
-            <div className="flex items-start justify-center">
+            <div className="flex items-center justify-center">
               <motion.div 
-                className="aspect-square w-full max-w-md rounded-2xl bg-secondary/30 overflow-hidden relative group"
+                className="aspect-square w-full rounded-xl md:rounded-2xl bg-secondary/30 overflow-hidden relative group"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               >
@@ -251,14 +265,14 @@ const ProductDetail = () => {
                 {/* Heart Favorite Button - Top Right */}
                 <motion.button
                   onClick={handleToggleFavorite}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm transition-all duration-300 z-10"
+                  className="absolute top-2 md:top-4 right-2 md:right-4 p-1.5 md:p-2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm transition-all duration-300 z-10 min-h-10 min-w-10 md:min-h-11 md:min-w-11 flex items-center justify-center"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 >
                   <Heart
                     strokeWidth={2}
-                    className={`w-5 h-5 transition-all duration-300 ${
+                    className={`w-4 md:w-5 h-4 md:h-5 transition-all duration-300 ${
                       isFav 
                         ? 'fill-red-500 text-red-500' 
                         : 'text-white hover:text-[#D4AF37]'
@@ -269,28 +283,28 @@ const ProductDetail = () => {
             </div>
 
             {/* Product Info */}
-            <div className="flex flex-col justify-center space-y-6">
+            <div className="flex flex-col justify-start md:justify-center space-y-3 md:space-y-4 lg:space-y-6">
               <div>
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                <p className="text-[10px] md:text-xs lg:text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1 md:mb-2">
                   {product.brand}
                 </p>
-                <h1 className="font-serif text-4xl md:text-5xl font-normal leading-relaxed mb-6 text-foreground">{product.name}</h1>
+                <h1 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal leading-snug md:leading-normal lg:leading-relaxed mb-2 md:mb-4 lg:mb-6 text-foreground">{product.name}</h1>
                 {stock === 0 && (
-                  <span className="text-lg font-serif text-[#D4AF37] font-light tracking-widest uppercase mb-6 inline-block">ÉPUISÉ</span>
+                  <span className="text-xs md:text-sm lg:text-base font-serif text-[#D4AF37] font-light tracking-widest uppercase mb-4 md:mb-6 inline-block">ÉPUISÉ</span>
                 )}
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-3 md:space-y-4 lg:space-y-6">
                 {/* Description */}
-                <div className="mt-6">
-                  <p className="text-sm text-foreground/70 leading-loose">
+                <div className="mt-2 md:mt-3 lg:mt-4">
+                  <p className="text-xs md:text-sm text-foreground/70 leading-relaxed md:leading-loose">
                     {product.description}
                   </p>
                 </div>
 
                 {/* Notes Olfactives Simplifiées */}
                 {storeProduct && (storeProduct.notes_tete || storeProduct.notes_coeur || storeProduct.notes_fond) && (
-                  <div className="pt-4">
+                  <div className="pt-1.5 md:pt-2 lg:pt-4">
                     <SimpleOlfactoryDisplay
                       notes_tete={storeProduct.notes_tete || []}
                       notes_coeur={storeProduct.notes_coeur || []}
@@ -301,17 +315,52 @@ const ProductDetail = () => {
                 )}
 
                 {/* Additional Information Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 lg:gap-6 pt-1.5 md:pt-2 lg:pt-4">
                   {product.volume && (
                     <div>
-                      <h3 className="font-semibold mb-2 uppercase text-xs tracking-wider text-muted-foreground">Volume</h3>
-                      <p className="text-sm text-foreground">{product.volume}</p>
+                      <h3 className="font-semibold mb-0.5 md:mb-1 uppercase text-[9px] md:text-xs tracking-wider text-muted-foreground">Volume</h3>
+                      <p className="text-[10px] md:text-xs lg:text-sm text-foreground">{product.volume}</p>
                     </div>
                   )}
 
                   <div>
-                    <h3 className="font-semibold mb-2 uppercase text-xs tracking-wider text-muted-foreground">Catégorie</h3>
-                    <p className="text-sm text-foreground capitalize">{product.category}</p>
+                    <h3 className="font-semibold mb-0.5 md:mb-1 uppercase text-[9px] md:text-xs tracking-wider text-muted-foreground">Catégorie</h3>
+                    <p className="text-[10px] md:text-xs lg:text-sm text-foreground capitalize">{product.category}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-0.5 md:mb-1 uppercase text-[9px] md:text-xs tracking-wider text-muted-foreground">Pour</h3>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {(() => {
+                        const gender = storeProduct?.gender || (product.category === 'homme' ? 'homme' : product.category === 'femme' ? 'femme' : 'mixte');
+                        if (gender === 'homme') {
+                          return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#0A1128]/20 text-[#0A1128] border border-[#0A1128]/40 dark:text-[#7B8FAF] dark:bg-[#0A1128]/40 dark:border-[#0A1128]/60">
+                              Lui
+                            </span>
+                          );
+                        }
+                        if (gender === 'femme') {
+                          return (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
+                              Elle
+                            </span>
+                          );
+                        }
+                        // mixte
+                        return (
+                          <>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#0A1128]/20 text-[#0A1128] border border-[#0A1128]/40 dark:text-[#7B8FAF] dark:bg-[#0A1128]/40 dark:border-[#0A1128]/60">
+                              Lui
+                            </span>
+                            <span className="text-muted-foreground text-xs">&</span>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
+                              Elle
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -319,38 +368,68 @@ const ProductDetail = () => {
 
 
               {/* Action Buttons */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col gap-2 md:gap-3 lg:gap-4 pt-3 md:pt-4 lg:pt-6 sticky bottom-0 md:static bg-gradient-to-t from-background via-background to-transparent md:to-transparent -mx-4 md:mx-0 px-4 md:px-0 py-3 md:py-0 md:bg-none md:from-transparent">
                 {stock === 0 ? (
                   <button
                     disabled
-                    className="flex-1 h-12 border border-border/30 rounded-lg text-foreground/50 text-sm font-medium hover:border-border/30 transition-colors cursor-not-allowed"
+                    className="w-full min-h-12 border border-border/30 rounded-lg text-foreground/50 text-xs md:text-sm font-medium hover:border-border/30 transition-colors cursor-not-allowed"
                   >
                     Épuisé
                   </button>
                 ) : (
-                  <button
-                    onClick={handleAddToCart}
-                    className="flex-1 h-12 border border-foreground/30 hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] rounded-lg text-sm font-medium transition-all duration-300 hover:shadow-sm flex items-center justify-center gap-2 group"
-                  >
-                    <ShoppingCart className="w-5 h-5 group-hover:animate-bounce" />
-                    Ajouter au panier
-                  </button>
+                  <>
+                    {/* Quantity Selector & Add to Cart - Single Row on Mobile */}
+                    <div className="flex flex-col md:flex-row gap-2 md:gap-3">
+                      {/* Quantity Selector */}
+                      <div className="flex items-center min-h-12 border border-border/30 rounded-lg overflow-hidden flex-shrink-0">
+                        <button
+                          onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                          disabled={quantity <= 1}
+                          className="w-10 md:w-12 min-h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="w-3 md:w-4 h-3 md:h-4" />
+                        </button>
+                        <span className="flex-1 min-h-12 flex items-center justify-center text-xs md:text-sm font-medium text-foreground select-none min-w-12">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => setQuantity((q) => Math.min(stock, q + 1))}
+                          disabled={quantity >= stock}
+                          className="w-10 md:w-12 min-h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="w-3 md:w-4 h-3 md:h-4" />
+                        </button>
+                      </div>
+
+                      {/* Add to Cart */}
+                      <button
+                        onClick={handleAddToCart}
+                        className="flex-1 min-h-12 border border-foreground/30 hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] rounded-lg text-xs md:text-sm font-medium transition-all duration-300 hover:shadow-sm flex items-center justify-center gap-1.5 md:gap-2 group"
+                      >
+                        <ShoppingCart className="w-4 md:w-5 h-4 md:h-5 group-hover:animate-bounce" />
+                        <span className="truncate md:truncate-none">Ajouter</span>
+                      </button>
+                    </div>
+                    
+                    {/* Favorite Button */}
+                    <motion.button
+                      onClick={handleToggleFavorite}
+                      whileHover={{ scale: 1.05, y: -1 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                      className="w-full md:w-12 min-h-12 md:min-h-10 border border-border/30 rounded-lg hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] flex items-center justify-center transition-all duration-300 gap-1.5 md:gap-0"
+                    >
+                      <Heart 
+                        className={`w-4 md:w-5 h-4 md:h-5 transition-all duration-300 ${isFav ? 'fill-[#D4AF37] text-[#D4AF37]' : ''}`}
+                      />
+                      <span className="md:hidden text-xs font-medium">Favori</span>
+                    </motion.button>
+                  </>
                 )}
-                <motion.button
-                  onClick={handleToggleFavorite}
-                  whileHover={{ scale: 1.05, y: -1 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="w-12 h-12 border border-border/30 rounded-lg hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] flex items-center justify-center transition-all duration-300"
-                >
-                  <Heart 
-                    className={`w-5 h-5 transition-all duration-300 ${isFav ? 'fill-[#D4AF37] text-[#D4AF37]' : ''}`}
-                  />
-                </motion.button>
               </div>
 
               {/* Additional Info */}
-              <div className="border-t pt-6 text-sm text-muted-foreground space-y-2">
+              <div className="hidden md:flex md:flex-col border-t pt-4 md:pt-6 text-xs md:text-sm text-muted-foreground space-y-1.5 md:space-y-2">
                 <p>✓ Livraison gratuite pour les commandes de + de 100€</p>
                 <p>✓ Satisfait ou remboursé 30 jours</p>
                 <p>✓ Emballage cadeau disponible</p>
@@ -359,8 +438,8 @@ const ProductDetail = () => {
           </div>
 
           {/* Recommended Products Carousel */}
-          <div className="border-t pt-16">
-            <h2 className="font-serif text-3xl md:text-4xl font-normal leading-relaxed mb-8 text-foreground">Vous aimeriez aussi...</h2>
+          <div className="border-t pt-8 md:pt-12 lg:pt-16">
+            <h2 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal leading-snug md:leading-normal lg:leading-relaxed mb-4 md:mb-6 lg:mb-8 text-foreground">Vous aimeriez aussi...</h2>
             
             {recommendedProducts.length > 0 ? (
               <div 
@@ -370,13 +449,13 @@ const ProductDetail = () => {
               >
                 {/* Carousel Container */}
                 <div 
-                  className="overflow-hidden select-none"
+                  className="overflow-x-auto scrollbar-hide select-none -mx-4 md:mx-0 px-4 md:px-0"
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                 >
                   <motion.div
-                    className="flex gap-4 md:gap-5"
+                    className="flex gap-3 sm:gap-4 md:gap-5"
                     animate={{ x: `${-carouselIndex * (100 / getVisibleCount())}%` }}
                     transition={{ type: 'spring', stiffness: 150, damping: 35, mass: 1.2 }}
                   >
@@ -388,7 +467,7 @@ const ProductDetail = () => {
                       return (
                       <div 
                         key={relatedProduct.id}
-                        className="flex-none w-1/2 md:w-1/3 lg:w-1/5"
+                        className="flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5"
                       >
                         <motion.div
                           className="product-card group text-left w-full relative h-full"
@@ -463,13 +542,13 @@ const ProductDetail = () => {
                           </motion.div>
 
                           {/* Product Info - Fixed Layout */}
-                          <div className="flex flex-col min-h-[110px] p-3 rounded-lg bg-white/15 backdrop-blur-sm transition-all duration-300 group-hover:bg-white/30 group-hover:backdrop-blur-md cursor-pointer">
+                          <div className="flex flex-col min-h-[90px] md:min-h-[110px] p-2 md:p-3 rounded-lg bg-white/15 backdrop-blur-sm transition-all duration-300 group-hover:bg-white/30 group-hover:backdrop-blur-md cursor-pointer">
                             {/* Brand & Title */}
-                            <div className="mb-2">
-                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
+                            <div className="mb-1.5 md:mb-2">
+                              <span className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
                                 {relatedProduct.brand}
                               </span>
-                              <h3 className="font-medium text-foreground leading-tight group-hover:text-primary transition-colors text-xs line-clamp-1">
+                              <h3 className="font-medium text-foreground leading-tight group-hover:text-primary transition-colors text-[10px] md:text-xs line-clamp-1">
                                 {relatedProduct.name}
                               </h3>
                             </div>
@@ -552,6 +631,10 @@ const ProductDetail = () => {
         items={cartItems}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+        promoCode={promoCode}
+        promoDiscount={promoDiscount}
+        onApplyPromo={applyPromoCode}
+        onClearPromo={clearPromoCode}
       />
     </div>
   );

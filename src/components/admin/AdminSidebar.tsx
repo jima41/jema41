@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { BarChart3, Package, Users, ShoppingCart, ChevronRight, LineChart, Heart, Sparkles } from 'lucide-react';
+import { BarChart3, Package, Users, ShoppingCart, ChevronRight, LineChart, Heart, Sparkles, TrendingDown, TicketPercent, Flower2 } from 'lucide-react';
 
 interface AdminSidebarProps {
   onItemClick?: () => void;
@@ -53,6 +53,24 @@ const AdminSidebar = ({ onItemClick }: AdminSidebarProps) => {
       path: '/admin/crm',
       description: 'Récupération paniers',
     },
+    {
+      label: 'Insights Paniers',
+      icon: TrendingDown,
+      path: '/admin/abandoned-insights',
+      description: 'Analyse prédictive',
+    },
+    {
+      label: 'Notes Olfactives',
+      icon: Flower2,
+      path: '/admin/olfactory-notes',
+      description: 'Bibliothèque de notes',
+    },
+    {
+      label: 'Codes Promo',
+      icon: TicketPercent,
+      path: '/admin/promo-codes',
+      description: 'Gestion des promos',
+    },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -77,7 +95,7 @@ const AdminSidebar = ({ onItemClick }: AdminSidebarProps) => {
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 hover:bg-white/10 rounded-lg transition-colors duration-200"
+          className="p-1.5 hover:bg-[#C4A97D]/10 rounded-lg transition-colors duration-200"
           title={isCollapsed ? 'Développer' : 'Réduire'}
         >
           <ChevronRight

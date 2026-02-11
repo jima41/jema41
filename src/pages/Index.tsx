@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
-import FragranceQuiz from '@/components/FragranceQuiz';
+import SillageQuiz from '@/components/SillageQuiz';
 import ProductGrid from '@/components/ProductGrid';
 import CartDrawer from '@/components/CartDrawer';
 import Reassurance from '@/components/Reassurance';
@@ -12,7 +12,19 @@ import { useAnalytics } from '@/context/AnalyticsContext';
 import type { Product } from '@/lib/products';
 
 const Index = () => {
-  const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const {
+    cartItems,
+    cartItemsCount,
+    isCartOpen,
+    addToCart,
+    updateQuantity,
+    removeItem,
+    setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    applyPromoCode,
+    clearPromoCode,
+  } = useCart();
   const { trackPageView: adminTrackPageView } = useAdmin();
   const { trackPageView, trackPageExit, trackClick } = useAnalytics();
 
@@ -36,7 +48,7 @@ const Index = () => {
       
       <main>
         <Hero />
-        <FragranceQuiz />
+        <SillageQuiz />
         <ProductGrid onAddToCart={handleAddToCart} />
         <Reassurance />
       </main>
@@ -49,6 +61,10 @@ const Index = () => {
         items={cartItems}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+        promoCode={promoCode}
+        promoDiscount={promoDiscount}
+        onApplyPromo={applyPromoCode}
+        onClearPromo={clearPromoCode}
       />
     </div>
   );

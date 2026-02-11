@@ -10,7 +10,6 @@ import { AnalyticsProvider } from "@/context/AnalyticsContext";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import DataSyncInitializer from "@/components/DataSyncInitializer";
 import UserDataSyncInitializer from "@/components/UserDataSyncInitializer";
-import { DebugPanel } from "@/components/DebugPanel";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import SearchResults from "./pages/SearchResults";
@@ -30,6 +29,9 @@ import AdminClients from "./pages/admin/AdminClients";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminCRM from "./pages/admin/AdminCRM";
+import AdminAbandonedInsights from "./pages/admin/AdminAbandonedInsights";
+import AdminPromoCodes from "./pages/admin/AdminPromoCodes";
+import AdminOlfactoryNotes from "./pages/admin/AdminOlfactoryNotes";
 import AdminGuide from "./pages/AdminGuide";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
@@ -42,7 +44,6 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <DebugPanel />
       <SyncStatus />
       <AnalyticsProvider>
         <AuthProvider>
@@ -133,6 +134,36 @@ const App = () => (
                     <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
                       <AdminLayout>
                         <AdminCRM />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/abandoned-insights"
+                  element={
+                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                      <AdminLayout>
+                        <AdminAbandonedInsights />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/olfactory-notes"
+                  element={
+                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                      <AdminLayout>
+                        <AdminOlfactoryNotes />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/promo-codes"
+                  element={
+                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                      <AdminLayout>
+                        <AdminPromoCodes />
                       </AdminLayout>
                     </ProtectedRoute>
                   }

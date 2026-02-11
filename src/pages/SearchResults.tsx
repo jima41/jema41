@@ -15,7 +15,19 @@ import type { Product } from '@/lib/products';
 const SearchResults = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const {
+    cartItems,
+    cartItemsCount,
+    isCartOpen,
+    addToCart,
+    updateQuantity,
+    removeItem,
+    setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    applyPromoCode,
+    clearPromoCode,
+  } = useCart();
   const { trackPageView: adminTrackPageView, products } = useAdmin();
   const { trackPageView, trackPageExit } = useAnalytics();
   const { products: storeProducts } = useAdminStore();
@@ -53,24 +65,24 @@ const SearchResults = () => {
     <div className="min-h-screen flex flex-col">
       <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
-      <main className="flex-1 py-8 md:py-16">
+      <main className="flex-1 py-6 md:py-8 lg:py-12 px-4 md:px-6 lg:px-0">
         <div className="container mx-auto">
           {/* Breadcrumb / Back Button */}
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 md:mb-8 min-h-10 px-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Retour à l'accueil
           </button>
 
           {/* Search Results Header */}
-          <div className="mb-12">
-            <h1 className="text-3xl md:text-4xl font-medium mb-2">Résultats de recherche</h1>
-            <p className="text-muted-foreground">
+          <div className="mb-8 md:mb-12">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-medium mb-2 md:mb-3">Résultats de recherche</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">
               {query ? (
                 <>
-                  {filteredProducts.length} résultat{filteredProducts.length !== 1 ? 's' : ''} trouvé{filteredProducts.length !== 1 ? 's' : ''} pour <span className="font-semibold text-foreground">"{query}"</span>
+                  {filteredProducts.length} résultat{filteredProducts.length !== 1 ? 's' : ''} trouvé{filteredProducts.length !== 1 ? 's' : ''} pour <span className="font-semibold text-foreground italic">'{query}'</span>
                 </>
               ) : (
                 'Veuillez entrer un terme de recherche'
@@ -80,7 +92,7 @@ const SearchResults = () => {
 
           {/* Products Grid */}
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-16">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-16">
               {filteredProducts.map(product => {
                 const storeProduct = storeProducts.find(p => p.id === product.id);
                 return (
@@ -104,13 +116,16 @@ const SearchResults = () => {
               })}
             </div>
           ) : (
-            <div className="text-center py-16">
-              <p className="text-lg text-muted-foreground mb-6">
+            <div className="text-center py-12 md:py-16 lg:py-20 px-4">
+              <p className="text-sm md:text-base lg:text-lg text-muted-foreground mb-6 md:mb-8">
                 Aucun parfum ne correspond à votre recherche.
               </p>
-              <Button onClick={() => navigate('/')}>
+              <button
+                onClick={() => navigate('/')}
+                className="px-4 md:px-6 py-2.5 md:py-3 rounded-lg border border-border/40 hover:border-border/80 text-sm font-medium text-foreground transition-all min-h-10 md:min-h-11"
+              >
                 Retour à tous les parfums
-              </Button>
+              </button>
             </div>
           )}
         </div>
@@ -124,6 +139,10 @@ const SearchResults = () => {
         items={cartItems}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+        promoCode={promoCode}
+        promoDiscount={promoDiscount}
+        onApplyPromo={applyPromoCode}
+        onClearPromo={clearPromoCode}
       />
     </div>
   );

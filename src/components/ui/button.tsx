@@ -9,12 +9,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "bg-[#C4A97D] text-[#1a1a2e] hover:bg-[#B8956A] font-medium",
+        destructive: "bg-red-900/40 text-red-300 border border-red-700/50 hover:bg-red-900/60",
+        outline: "border border-[#C4A97D]/40 bg-transparent text-[#C4A97D] hover:bg-[#C4A97D]/10 hover:border-[#C4A97D]/70",
+        secondary: "bg-[#C4A97D]/15 text-[#C4A97D] hover:bg-[#C4A97D]/25",
+        ghost: "hover:bg-[#C4A97D]/10 hover:text-[#C4A97D]",
+        link: "text-[#C4A97D] underline-offset-4 hover:underline",
         luxury: "btn-luxury text-foreground font-semibold hover:shadow-luxury rounded-full",
         glass: "glass hover:bg-card/80 text-foreground border-border/50",
         filter: "border border-border/40 text-foreground/70 hover:border-border/80 hover:text-foreground data-[active=true]:border-foreground/60 data-[active=true]:text-foreground data-[active=true]:bg-secondary/30",

@@ -9,6 +9,7 @@ import {
   BarChart3,
   Zap,
 } from 'lucide-react';
+import PromoCodesManager from '@/components/admin/PromoCodesManager';
 import {
   Tabs,
   TabsContent,
@@ -16,13 +17,48 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 
-const AdminCRM = () => {
-  const { carts, sendRecoveryEmail, markRecovered, getStatistics, getFilteredCarts } =
-    useAbandonedCarts();
-  const [activeTab, setActiveTab] = useState('pending');
+interface CRMStats {
+  total: number;
+  recovered: number;
+  abandoned: number;
+  totalValue: number;
+  averageAttempts: number;
+  recoveryRate: number;
+}
 
-  const stats = getStatistics();
-  const filteredCarts = getFilteredCarts(activeTab as 'all' | 'pending' | 'recovered' | 'urgent');
+const AdminCRM = () => {
+  try {
+    const abandonedCarts = useAbandonedCarts();
+    console.log('useAbandonedCarts hook result:', abandonedCarts);
+    
+    const { 
+      carts = [], 
+      sendRecoveryEmail, 
+      markRecovered, 
+      getStatistics, 
+      getFilteredCarts 
+    } = abandonedCarts || {};
+    
+    const [activeTab, setActiveTab] = useState('pending');
+
+    console.log('AdminCRM rendered', { carts, getStatistics, getFilteredCarts });
+
+    let stats: CRMStats = { 
+      total: 0, 
+      recovered: 0, 
+      abandoned: 0, 
+      totalValue: 0, 
+      averageAttempts: 0, 
+      recoveryRate: 0 
+    };
+    let filteredCarts: any[] = [];
+
+    if (getStatistics) {
+      stats = getStatistics();
+    }
+    if (getFilteredCarts) {
+      filteredCarts = getFilteredCarts(activeTab as 'all' | 'pending' | 'recovered' | 'urgent');
+    }
 
   return (
     <div className="space-y-6">
@@ -167,6 +203,8 @@ const AdminCRM = () => {
         </Tabs>
       </div>
 
+      <PromoCodesManager />
+
       {/* Strategy Info Box */}
       <div className="glass-panel border border-admin-border rounded-lg p-6">
         <h3 className="text-lg font-bold text-admin-text-primary font-montserrat mb-4">
@@ -242,7 +280,22 @@ const AdminCRM = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('AdminCRM Error:', error);
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold text-red-500 mb-4">Erreur</h1>
+        <p className="text-red-400 mb-4">Une erreur est survenue lors du chargement du CRM.</p>
+        <details className="bg-red-900/20 p-4 rounded border border-red-700">
+          <summary className="cursor-pointer font-medium text-red-400">Détails de l'erreur</summary>
+          <pre className="mt-4 text-sm text-red-300 overflow-auto">
+            {error instanceof Error ? error.message : String(error)}
+          </pre>
+        </details>
+      </div>
+    );
+  }
 };
 
 export default AdminCRM;

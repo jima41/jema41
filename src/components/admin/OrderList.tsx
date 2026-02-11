@@ -41,6 +41,8 @@ export interface Order {
   shippedAt?: Date;
   deliveredAt?: Date;
   unboxing: UnboxingPersonalization;
+  promoCode?: string;
+  promoDiscount?: number;
 }
 
 interface OrderListProps {
@@ -166,6 +168,11 @@ export const OrderList: React.FC<OrderListProps> = ({
                   <p className="text-xs text-admin-text-secondary">
                     {formatDate(order.createdAt)}
                   </p>
+                  {order.promoCode && (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] uppercase tracking-widest text-emerald-300 border border-emerald-500/40 rounded-full px-2 py-0.5">
+                      {order.promoCode} -{order.promoDiscount}%
+                    </span>
+                  )}
                 </div>
 
                 {/* Status */}
@@ -293,6 +300,18 @@ export const OrderList: React.FC<OrderListProps> = ({
                     ))}
                   </div>
                 </div>
+
+                {/* Promo Code Info */}
+                {order.promoCode && (
+                  <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-lg px-4 py-3">
+                    <p className="text-xs font-medium text-admin-text-secondary uppercase tracking-wider mb-1">
+                      Code Promo Utilisé
+                    </p>
+                    <p className="text-sm text-emerald-300 uppercase tracking-widest font-semibold">
+                      {order.promoCode} <span className="text-emerald-400 font-normal">(-{order.promoDiscount}%)</span>
+                    </p>
+                  </div>
+                )}
 
                 {/* Status Progression */}
                 <div>

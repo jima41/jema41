@@ -94,7 +94,7 @@ const MOCK_ORDERS: Order[] = [
     items: [
       { productId: '1', productName: 'Éclat Doré 50ml', quantity: 1, price: 129.00 },
     ],
-    totalAmount: 129.00,
+    totalAmount: 116.10,
     createdAt: new Date('2026-02-06'),
     unboxing: {
       giftWrap: 'classic',
@@ -103,6 +103,8 @@ const MOCK_ORDERS: Order[] = [
       premiumInsert: false,
       fragileProtection: true,
     },
+    promoCode: 'BIENVENUE10',
+    promoDiscount: 10,
   },
 ];
 

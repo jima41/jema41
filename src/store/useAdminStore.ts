@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { DEFAULT_PRODUCTS } from '@/lib/products';
-import { classifyPerfume, type TeteNote, type CoeurNote, type FondNote, type OlfactoryFamily } from '@/lib/olfactory';
+import { classifyPerfume, type OlfactoryFamily } from '@/lib/olfactory';
 import {
   fetchAllProducts,
   createProduct as supabaseCreate,
@@ -52,13 +52,15 @@ export interface AbandonedCart {
   clientEmail: string;
   items: AbandonedCartItem[];
   totalValue: number;
-  abandonedAt: Date;
+  abandonedAt: Date | string;
   recoveryAttempts: number;
-  lastRecoveryEmail?: Date;
+  lastRecoveryEmail?: Date | string;
   recovered: boolean;
-  recoveryDate?: Date;
+  recoveryDate?: Date | string;
   discountOffered?: number;
 }
+
+export type ProductGender = 'homme' | 'femme' | 'mixte';
 
 export interface Product {
   id: string;
@@ -69,12 +71,13 @@ export interface Product {
   image_url?: string;
   scent: string;
   category?: string;
+  gender?: ProductGender;
   families: OlfactoryFamily[];
   description?: string;
   notes?: string[];
-  notes_tete: TeteNote[];
-  notes_coeur: CoeurNote[];
-  notes_fond: FondNote[];
+  notes_tete: string[];
+  notes_coeur: string[];
+  notes_fond: string[];
   volume?: string;
   stock: number;
   monthlySales: number;
@@ -115,6 +118,8 @@ export interface Order {
   timestamp: number;
   status: 'completed' | 'shipped' | 'cancelled';
   notes?: string;
+  promoCode?: string;
+  promoDiscount?: number;
 }
 
 interface AdminStoreState {
@@ -179,7 +184,7 @@ interface AdminStoreState {
 }
 
 // Exporter les types olfactifs pour faciliter l'utilisation
-export type { TeteNote, CoeurNote, FondNote, OlfactoryFamily } from '@/lib/olfactory';
+export type { OlfactoryFamily } from '@/lib/olfactory';
 export { classifyPerfume, OLFACTORY_DICTIONARY, getAllNotesFlat, getTeteNoteIds, getCoeurNoteIds, getFondNoteIds } from '@/lib/olfactory';
 
 // ============================================================================
@@ -243,14 +248,15 @@ const convertProductRowToProduct = (row: ProductRow, index: number = 0): Product
     image_url: imageUrl,
     scent: row.scent || 'Inconnu',
     category: row.category || undefined,
+    gender: (row.gender as ProductGender) || undefined,
     families: (row.families || []) as OlfactoryFamily[],
     description: row.description || undefined,
-    notes_tete: (row.notes_tete || []) as TeteNote[],
-    notes_coeur: (row.notes_coeur || []) as CoeurNote[],
-    notes_fond: (row.notes_fond || []) as FondNote[],
+    notes_tete: (row.notes_tete || []) as string[],
+    notes_coeur: (row.notes_coeur || []) as string[],
+    notes_fond: (row.notes_fond || []) as string[],
     volume: row.volume || undefined,
     stock: row.stock || 0,
-    monthlySales: row.monthlySales || 0,
+    monthlySales: row.monthlysales || 0,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -265,13 +271,14 @@ const convertProductToRow = (product: Product) => {
     description: product.description,
     scent: product.scent,
     category: product.category,
+    gender: product.gender || 'mixte',
     families: product.families || [],
     notes_tete: product.notes_tete || [],
     notes_coeur: product.notes_coeur || [],
     notes_fond: product.notes_fond || [],
     volume: product.volume,
     stock: product.stock || 0,
-    monthlySales: product.monthlySales || 0,
+    monthlysales: product.monthlySales || 0,
   };
 };
 
@@ -574,7 +581,8 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
         return state.abandonedCarts.filter((c) => c.recovered);
       case 'urgent': {
         return state.abandonedCarts.filter((c) => {
-          const hoursSince = (Date.now() - c.abandonedAt.getTime()) / (1000 * 60 * 60);
+          const abandonedDate = typeof c.abandonedAt === 'string' ? new Date(c.abandonedAt) : c.abandonedAt;
+          const hoursSince = (Date.now() - abandonedDate.getTime()) / (1000 * 60 * 60);
           return !c.recovered && (hoursSince > 72 || c.recoveryAttempts >= 3);
         });
       }
@@ -681,12 +689,22 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
         return;
       }
 
+      // Champs autorisés dans la table Supabase
+      const ALLOWED_DB_FIELDS = new Set([
+        'name', 'brand', 'price', 'description', 'image_url',
+        'notes_tete', 'notes_coeur', 'notes_fond', 'families',
+        'stock', 'monthlysales', 'volume', 'category', 'gender', 'scent',
+      ]);
+
       const data: any = {};
       Object.entries(updates).forEach(([key, value]) => {
-        // Mapper les clés image -> image_url
         if (key === 'image') {
+          // Mapper image -> image_url
           data.image_url = value;
-        } else if (key !== 'created_at' && key !== 'updated_at') {
+        } else if (key === 'monthlySales') {
+          // Mapper monthlySales (camelCase interne) -> monthlysales (colonne DB lowercase)
+          data.monthlysales = value;
+        } else if (ALLOWED_DB_FIELDS.has(key)) {
           data[key] = value;
         }
       });
@@ -773,7 +791,7 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
       console.log('📊 Vélocité mise à jour localement:', id, `${originalSales} → ${validatedSales}`);
 
       // Ensuite, synchroniser avec Supabase
-      const result = await supabaseUpdate(id, { monthlySales: validatedSales });
+      const result = await supabaseUpdate(id, { monthlysales: validatedSales });
       console.log('✅ Vélocité synchronisée avec Supabase:', id, result);
     } catch (error) {
       // Rollback en cas d'erreur

@@ -13,6 +13,7 @@ import { useAdmin } from '@/context/AdminContext';
 import { useAnalytics } from '@/context/AnalyticsContext';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import type { Product } from '@/lib/products';
 import type { OlfactoryFamily } from '@/lib/olfactory';
 
@@ -30,7 +31,19 @@ const ALL_FAMILIES: OlfactoryFamily[] = [
 const AllProducts = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { cartItems, cartItemsCount, isCartOpen, addToCart, updateQuantity, removeItem, setIsCartOpen } = useCart();
+  const {
+    cartItems,
+    cartItemsCount,
+    isCartOpen,
+    addToCart,
+    updateQuantity,
+    removeItem,
+    setIsCartOpen,
+    promoCode,
+    promoDiscount,
+    applyPromoCode,
+    clearPromoCode,
+  } = useCart();
   const { trackPageView: adminTrackPageView, products: allProducts } = useAdmin();
   const { trackPageView, trackPageExit, trackClick } = useAnalytics();
   const { products: storeProducts } = useAdminStore();
@@ -98,32 +111,33 @@ const AllProducts = () => {
     <div className="min-h-screen flex flex-col">
       <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
-      <main className="flex-1 py-2 md:py-4">
+      <main className="flex-1 py-6 md:py-8 lg:py-12 px-4 md:px-6 lg:px-0">
         <div className="container mx-auto">
           {/* Breadcrumb / Back Button */}
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-foreground/60 hover:text-foreground transition-colors mb-4 text-xs tracking-[0.15em] uppercase font-medium"
+            className="inline-flex items-center gap-2 text-foreground/60 hover:text-foreground transition-colors mb-4 md:mb-6 text-xs md:text-xs tracking-[0.15em] uppercase font-medium min-h-10 px-2"
           >
             <span>←</span>
             Retour à l'accueil
           </button>
 
           {/* Page Header - Editorial */}
-          <div className="mb-6">
-            <h1 className="font-serif text-4xl md:text-5xl font-normal leading-relaxed mb-4 text-foreground">
+          <div className="mb-6 md:mb-8">
+            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-normal leading-tight sm:leading-snug md:leading-relaxed mb-3 md:mb-4 text-foreground">
               Tous nos Parfums
             </h1>
-            <p className="text-sm text-foreground/70 leading-loose max-w-[60%]">
+            <p className="text-xs md:text-sm text-foreground/70 leading-relaxed md:leading-loose max-w-full md:max-w-[70%] lg:max-w-[80%]">
               Découvrez notre collection complète de parfums d'exception, soigneusement sélectionnés pour tous les goûts et toutes les occasions.
+            </p>
             </p>
           </div>
 
           {/* Filters Toggle Button & Results Count */}
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-4 md:mb-6 flex items-center justify-between gap-3">
             <motion.button
               onClick={() => setIsFiltersOpen(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/40 hover:border-border/80 hover:bg-secondary/30 transition-all"
+              className="inline-flex items-center gap-2 px-3 py-2 md:py-1.5 rounded-lg border border-border/40 hover:border-border/80 hover:bg-secondary/30 transition-all min-h-10 md:min-h-9 text-xs md:text-xs font-medium"
               whileHover={{ scale: 1.03, y: -1 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -136,7 +150,7 @@ const AllProducts = () => {
                 <Filter className="w-4 h-4" />
               </motion.div>
               <motion.span 
-                className="text-xs font-medium"
+                className="text-xs font-medium white space-nowrap"
                 initial={{ opacity: 0.8 }}
                 whileHover={{ opacity: 1 }}
                 transition={{ duration: 0.2 }}
@@ -147,7 +161,7 @@ const AllProducts = () => {
             
             {/* Results Count - Right side */}
             <motion.div 
-              className="text-xs text-muted-foreground"
+              className="text-xs text-muted-foreground whitespace-nowrap"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.3 }}
@@ -159,7 +173,7 @@ const AllProducts = () => {
           {/* Products Grid */}
           {filteredProducts.length > 0 ? (
             <motion.div 
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 mb-16"
+              className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5 mb-16"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
@@ -200,12 +214,12 @@ const AllProducts = () => {
             </motion.div>
           ) : (
             <motion.div 
-              className="text-center py-12"
+              className="text-center py-12 md:py-16 lg:py-20 px-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <p className="text-muted-foreground mb-6">Aucun parfum ne correspond à vos critères de filtrage.</p>
+              <p className="text-xs md:text-sm text-muted-foreground mb-4 md:mb-6">Aucun parfum ne correspond à vos critères de filtrage.</p>
             </motion.div>
           )}
         </div>
@@ -240,6 +254,10 @@ const AllProducts = () => {
         items={cartItems}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+        promoCode={promoCode}
+        promoDiscount={promoDiscount}
+        onApplyPromo={applyPromoCode}
+        onClearPromo={clearPromoCode}
       />
     </div>
   );
