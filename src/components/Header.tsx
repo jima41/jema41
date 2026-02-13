@@ -226,7 +226,6 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isMounted = useIsMounted();
-  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // HYDRATION-SAFE: Rendre une version neutre tant que le composant n'est pas monté
   if (!isMounted) {
@@ -246,12 +245,7 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
     );
   }
 
-  // Use MobileHeader for mobile devices (seulement après montage)
-  if (isMobile) {
-    return <MobileHeader cartItemsCount={cartItemsCount} onCartClick={onCartClick} />;
-  }
-
-  // Scroll handling
+  // Scroll handling (only for desktop)
   useEffect(() => {
     const handleScroll = () => {
       setScrollY(window.scrollY);
@@ -294,229 +288,239 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-50">
-      {/* Shipping Bar */}
-      <ShippingBar />
+    <>
+      {/* Mobile Header - Always rendered, visibility controlled by CSS */}
+      <div className="flex md:hidden">
+        <MobileHeader cartItemsCount={cartItemsCount} onCartClick={onCartClick} />
+      </div>
 
-      {/* Main Header with Glassmorphism */}
-      <motion.div
-        className="backdrop-blur-xl border-b transition-colors duration-200"
-        style={{
-          backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
-          borderColor: 'rgba(212, 175, 55, 0.2)',
-        }}
-        animate={{
-          backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
-        }}
-      >
-        <div className="container mx-auto">
+      {/* Desktop Header - Always rendered, visibility controlled by CSS */}
+      <div className="hidden md:flex">
+        <header className="sticky top-0 z-50">
+          {/* Shipping Bar */}
+          <ShippingBar />
+
+          {/* Main Header with Glassmorphism */}
           <motion.div
-            className="flex items-center justify-between w-full transition-[padding] duration-300"
+            className="backdrop-blur-xl border-b transition-colors duration-200"
             style={{
-              padding: `${1 * headerPaddingScale}rem 1rem`,
+              backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
+              borderColor: 'rgba(212, 175, 55, 0.2)',
             }}
             animate={{
-              padding: `${1 * headerPaddingScale}rem 1rem`,
+              backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
             }}
           >
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 -ml-2"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              title={isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-            >
-              {isMenuOpen ? (
-                <X className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
-              ) : (
-                <Menu className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
-              )}
-            </button>
+            <div className="container mx-auto">
+              <motion.div
+                className="flex items-center justify-between w-full transition-[padding] duration-300"
+                style={{
+                  padding: `${1 * headerPaddingScale}rem 1rem`,
+                }}
+                animate={{
+                  padding: `${1 * headerPaddingScale}rem 1rem`,
+                }}
+              >
+                {/* Mobile Menu Button */}
+                <button
+                  className="md:hidden p-2 -ml-2"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  title={isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+                >
+                  {isMenuOpen ? (
+                    <X className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
+                  ) : (
+                    <Menu className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
+                  )}
+                </button>
 
-            {/* Desktop Navigation - LEFT */}
-            <nav className="hidden md:flex items-center gap-8 flex-1">
-              <PerfumeNavDropdown 
-                isOpen={false} 
-                onToggle={() => {}}
-                onClose={() => {}}
-              />
-            </nav>
-
-            {/* Logo - CENTER */}
-            <div className="flex-1 flex justify-center md:flex-none">
-              <Logo />
-            </div>
-
-            {/* Actions - RIGHT */}
-            <div className="flex items-center gap-2 flex-1 justify-end">
-              {/* Search */}
-              <form onSubmit={handleSearch} className="relative flex items-center">
-                {isSearchOpen && (
-                  <motion.input
-                    type="text"
-                    placeholder="Rechercher..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="mr-2 w-48 md:w-64 px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 transition-all"
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                      borderColor: 'rgba(212, 175, 55, 0.3)',
-                      backdropFilter: 'blur(12px)',
-                      WebkitBackdropFilter: 'blur(12px)',
-                    }}
-                    autoFocus
-                    initial={{ opacity: 0, scale: 0.95, width: 0 }}
-                    animate={{ opacity: 1, scale: 1, width: 'auto' }}
-                    exit={{ opacity: 0, scale: 0.95, width: 0 }}
-                    transition={{ duration: 0.2 }}
+                {/* Desktop Navigation - LEFT */}
+                <nav className="hidden md:flex items-center gap-8 flex-1">
+                  <PerfumeNavDropdown 
+                    isOpen={false} 
+                    onToggle={() => {}}
+                    onClose={() => {}}
                   />
-                )}
-                <ActionIcon
-                  icon={<Search strokeWidth={1.5} className="w-5 h-5" />}
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  title="Rechercher"
-                />
-              </form>
+                </nav>
 
-              {/* Cart */}
-              <ActionIcon
-                icon={<ShoppingBag strokeWidth={1.5} className="w-5 h-5" />}
-                onClick={onCartClick}
-                badge={cartItemsCount}
-                title="Panier"
-              />
-
-              {/* Mobile Auth Buttons - Adapted for mobile (kept md:hidden as originally) */}
-              <div className="md:hidden flex items-center gap-2">
-                {!user && (
-                  <>
-                    <Link to="/login">
-                      <button className="px-4 py-2.5 text-sm font-medium text-[#A68A56] border border-[#D4AF37]/40 rounded-lg active:scale-95 transition-all bg-white/80 backdrop-blur-sm">
-                        Connexion
-                      </button>
-                    </Link>
-                    <Link to="/signup">
-                      <button className="px-4 py-2.5 text-sm font-medium text-white bg-[#D4AF37] hover:bg-[#B8952A] active:scale-95 transition-all rounded-lg shadow-sm">
-                        S'inscrire
-                      </button>
-                    </Link>
-                  </>
-                )}
-              </div>
-
-              {/* Admin */}
-              {user?.role === 'admin' && (
-                <div className="hidden md:block">
-                  <ActionIcon
-                    icon={<Settings strokeWidth={1.5} className="w-5 h-5" />}
-                    onClick={() => navigate('/admin')}
-                    title="Panneau d'Administration"
-                  />
+                {/* Logo - CENTER */}
+                <div className="flex-1 flex justify-center md:flex-none">
+                  <Logo />
                 </div>
-              )}
 
-              {/* User/Auth Actions */}
-              {user ? (
-                <div className="relative">
+                {/* Actions - RIGHT */}
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                  {/* Search */}
+                  <form onSubmit={handleSearch} className="relative flex items-center">
+                    {isSearchOpen && (
+                      <motion.input
+                        type="text"
+                        placeholder="Rechercher..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="mr-2 w-48 md:w-64 px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 transition-all"
+                        style={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                          borderColor: 'rgba(212, 175, 55, 0.3)',
+                          backdropFilter: 'blur(12px)',
+                          WebkitBackdropFilter: 'blur(12px)',
+                        }}
+                        autoFocus
+                        initial={{ opacity: 0, scale: 0.95, width: 0 }}
+                        animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                        exit={{ opacity: 0, scale: 0.95, width: 0 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                    <ActionIcon
+                      icon={<Search strokeWidth={1.5} className="w-5 h-5" />}
+                      onClick={() => setIsSearchOpen(!isSearchOpen)}
+                      title="Rechercher"
+                    />
+                  </form>
+
+                  {/* Cart */}
                   <ActionIcon
-                    icon={<User strokeWidth={1.5} className="w-5 h-5" />}
-                    onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    isActive={isProfileOpen}
-                    title={user.username}
+                    icon={<ShoppingBag strokeWidth={1.5} className="w-5 h-5" />}
+                    onClick={onCartClick}
+                    badge={cartItemsCount}
+                    title="Panier"
                   />
 
-                  {/* Profile Dropdown */}
-                  {isProfileOpen && (
-                    <motion.div
-                      className="absolute right-0 mt-2 w-48 bg-background border border-border/40 rounded-lg shadow-lg backdrop-blur-md overflow-hidden z-50"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="px-4 py-3 border-b border-border/30">
-                        <p className="text-sm font-medium">{user.username}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                        {user.role === 'admin' && (
-                          <span className="inline-block mt-1 px-2 py-1 text-xs bg-[#D4AF37]/20 text-[#D4AF37] rounded">
-                            Admin
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          navigate('/mes-informations');
-                          setIsProfileOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-[#D4AF37]"
-                      >
-                        <Settings className="w-4 h-4" strokeWidth={1.5} />
-                        Mes informations
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigate('/favorites');
-                          setIsProfileOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-[#D4AF37]"
-                      >
-                        <Heart className="w-4 h-4" strokeWidth={1.5} />
-                        Mes coups de coeurs
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-[#A68A56]"
-                      >
-                        <LogOut className="w-4 h-4" strokeWidth={1.5} />
-                        Déconnexion
-                      </button>
-                    </motion.div>
+                  {/* Mobile Auth Buttons - Adapted for mobile (kept md:hidden as originally) */}
+                  <div className="md:hidden flex items-center gap-2">
+                    {!user && (
+                      <>
+                        <Link to="/login">
+                          <button className="px-4 py-2.5 text-sm font-medium text-[#A68A56] border border-[#D4AF37]/40 rounded-lg active:scale-95 transition-all bg-white/80 backdrop-blur-sm">
+                            Connexion
+                          </button>
+                        </Link>
+                        <Link to="/signup">
+                          <button className="px-4 py-2.5 text-sm font-medium text-white bg-[#D4AF37] hover:bg-[#B8952A] active:scale-95 transition-all rounded-lg shadow-sm">
+                            S'inscrire
+                          </button>
+                        </Link>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Admin */}
+                  {user?.role === 'admin' && (
+                    <div className="hidden md:block">
+                      <ActionIcon
+                        icon={<Settings strokeWidth={1.5} className="w-5 h-5" />}
+                        onClick={() => navigate('/admin')}
+                        title="Panneau d'Administration"
+                      />
+                    </div>
+                  )}
+
+                  {/* User/Auth Actions */}
+                  {user ? (
+                    <div className="relative">
+                      <ActionIcon
+                        icon={<User strokeWidth={1.5} className="w-5 h-5" />}
+                        onClick={() => setIsProfileOpen(!isProfileOpen)}
+                        isActive={isProfileOpen}
+                        title={user.username}
+                      />
+
+                      {/* Profile Dropdown */}
+                      {isProfileOpen && (
+                        <motion.div
+                          className="absolute right-0 mt-2 w-48 bg-background border border-border/40 rounded-lg shadow-lg backdrop-blur-md overflow-hidden z-50"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div className="px-4 py-3 border-b border-border/30">
+                            <p className="text-sm font-medium">{user.username}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                            {user.role === 'admin' && (
+                              <span className="inline-block mt-1 px-2 py-1 text-xs bg-[#D4AF37]/20 text-[#D4AF37] rounded">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              navigate('/mes-informations');
+                              setIsProfileOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-[#D4AF37]"
+                          >
+                            <Settings className="w-4 h-4" strokeWidth={1.5} />
+                            Mes informations
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigate('/favorites');
+                              setIsProfileOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-[#D4AF37]"
+                          >
+                            <Heart className="w-4 h-4" strokeWidth={1.5} />
+                            Mes coups de coeurs
+                          </button>
+                          <button
+                            onClick={handleLogout}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-[#A68A56]"
+                          >
+                            <LogOut className="w-4 h-4" strokeWidth={1.5} />
+                            Déconnexion
+                          </button>
+                        </motion.div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="hidden md:flex gap-4">
+                      <Link to="/login">
+                        <button className="text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
+                          Connexion
+                        </button>
+                      </Link>
+                      <Link to="/signup">
+                        <button className="text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
+                          Inscription
+                        </button>
+                      </Link>
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className="hidden md:flex gap-4">
-                  <Link to="/login">
-                    <button className="text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
-                      Connexion
-                    </button>
-                  </Link>
-                  <Link to="/signup">
-                    <button className="text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
-                      Inscription
-                    </button>
-                  </Link>
-                </div>
-              )}
+              </motion.div>
             </div>
-          </motion.div>
-        </div>
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <motion.div
-            className="md:hidden border-t border-border/20 bg-background/95 backdrop-blur-md"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <nav className="container mx-auto py-4 flex flex-col gap-4 px-4">
-              {/* Tous nos Parfums */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    navigate('/all-products');
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors py-2 w-full text-left"
-                >
-                  Nos Parfums
-                </button>
-              </div>
-            </nav>
+            {/* Mobile Menu */}
+            {isMenuOpen && (
+              <motion.div
+                className="md:hidden border-t border-border/20 bg-background/95 backdrop-blur-md"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <nav className="container mx-auto py-4 flex flex-col gap-4 px-4">
+                  {/* Tous nos Parfums */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        navigate('/all-products');
+                        setIsMenuOpen(false);
+                      }}
+                      className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors py-2 w-full text-left"
+                    >
+                      Nos Parfums
+                    </button>
+                  </div>
+                </nav>
+              </motion.div>
+            )}
           </motion.div>
-        )}
-      </motion.div>
-    </header>
+        </header>
+      </div>
+    </>
   );
 };
 
