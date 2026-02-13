@@ -134,6 +134,7 @@ const generateSessionId = (): string =>
   `s_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
 
 const detectDevice = (): 'mobile' | 'tablet' | 'desktop' => {
+  if (typeof window === 'undefined') return 'desktop'; // Default for SSR
   const w = window.innerWidth;
   if (w < 768) return 'mobile';
   if (w < 1024) return 'tablet';

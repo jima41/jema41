@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X, LogOut, User, Settings, ChevronRight, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,8 @@ interface NavLinkProps {
 
 const AnimatedNavLink = ({ label, href }: NavLinkProps) => {
   const navigate = useNavigate();
-  const isActive = window.location.pathname === href;
+  const location = useLocation();
+  const isActive = location.pathname === href;
 
   const underlineVariants = {
     initial: {
@@ -137,7 +138,8 @@ interface PerfumeDropdownProps {
 
 const PerfumeNavDropdown = ({ isOpen, onToggle, onClose }: PerfumeDropdownProps) => {
   const navigate = useNavigate();
-  const isActive = window.location.pathname === '/all-products';
+  const location = useLocation();
+  const isActive = location.pathname === '/all-products';
 
   const underlineVariants = {
     initial: {
