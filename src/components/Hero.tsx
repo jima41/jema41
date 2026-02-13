@@ -15,6 +15,9 @@ const Hero = () => {
   const springRotate = useSpring(rotate, { stiffness: 110, damping: 34, mass: 0.8 });
 
   const handleExplore = () => {
+    // Safety check for SSR and DOM readiness
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
     const element = document.getElementById('notre-selection');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
@@ -22,7 +25,8 @@ const Hero = () => {
   };
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    if (!hasFinePointer || isMobile) return;
+    // Désactiver complètement les animations sur mobile
+    if (!hasFinePointer || isMobile || typeof window === 'undefined') return;
 
     const normalizedX = event.clientX / window.innerWidth - 0.5;
     const normalizedY = event.clientY / window.innerHeight - 0.5;
@@ -36,7 +40,8 @@ const Hero = () => {
   }, [hasFinePointer, x, y, rotate, isMobile]);
 
   const handleMouseLeave = useCallback(() => {
-    if (!hasFinePointer || isMobile) return;
+    // Désactiver complètement les animations sur mobile
+    if (!hasFinePointer || isMobile || typeof window === 'undefined') return;
     x.set(0);
     y.set(0);
     rotate.set(0);
@@ -50,11 +55,10 @@ const Hero = () => {
     >
       {/* Background Image */}
       <div className="absolute inset-0">
-        <motion.img
+        <img
           src={heroImage}
           alt="Luxury Perfume Collection"
           className="w-full h-full object-cover object-center"
-          style={hasFinePointer && !isMobile ? { x: springX, y: springY, rotate: springRotate } : undefined}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background/95 sm:from-background/80 via-background/50 sm:via-background/40 to-transparent" />
       </div>
