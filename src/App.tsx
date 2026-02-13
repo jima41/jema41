@@ -36,25 +36,18 @@ import AdminGuide from "./pages/AdminGuide";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import SyncStatus from "./components/SyncStatus";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense } from "react";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
-  // Si pas monté, on rend une div vide avec le fond du site pour éviter le flash
-  if (!mounted) return <div className="bg-[#F9F8F6] min-h-screen" />;
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <SyncStatus />
-        <AnalyticsProvider>
-          <AuthProvider>
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <SyncStatus />
+      <AnalyticsProvider>
+        <AuthProvider>
           <AdminProvider>
             <CartProvider>
               <DataSyncInitializer>
@@ -197,7 +190,6 @@ const App = () => {
       </AnalyticsProvider>
     </TooltipProvider>
   </QueryClientProvider>
-  );
-};
+);
 
 export default App;
