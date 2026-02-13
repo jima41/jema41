@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 import MobileHeader from './MobileHeader';
 
 interface HeaderProps {
@@ -222,9 +223,28 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   const [scrollY, setScrollY] = useState(0);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isMounted = useIsMounted();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Use MobileHeader for mobile devices
+  // HYDRATION-SAFE: Rendre une version neutre tant que le composant n'est pas monté
+  if (!isMounted) {
+    return (
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#D4AF37]/20">
+        <div className="flex items-center justify-center px-4 h-16">
+          <Link to="/" className="flex items-center gap-0 group">
+            <span className="font-serif text-2xl font-normal tracking-widest text-foreground">
+              Rayha
+            </span>
+            <span className="font-sans text-xs font-light tracking-widest text-foreground/70 uppercase ml-1 pt-1">
+              Store
+            </span>
+          </Link>
+        </div>
+      </header>
+    );
+  }
+
+  // Use MobileHeader for mobile devices (seulement après montage)
   if (isMobile) {
     return <MobileHeader cartItemsCount={cartItemsCount} onCartClick={onCartClick} />;
   }
