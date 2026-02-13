@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ProductTable, StockItem } from '@/components/admin/ProductTable';
 import MobileProductCard from '@/components/admin/MobileProductCard';
 import { ProductSlideOver } from '@/components/admin/ProductSlideOver';
@@ -6,10 +7,13 @@ import { EditStockDialog } from '@/components/admin/EditStockDialog';
 import { useStockInventory } from '@/hooks/use-stock-inventory';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { useAuth } from '@/context/AuthContext';
 import { AlertCircle, TrendingUp, Package, RotateCcw, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const AdminInventory = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { stockItems, updateStockLevel, updateVelocity, deleteProduct } = useStockInventory();
   const { resetProductsToDefaults, products } = useAdminStore();
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -17,6 +21,18 @@ const AdminInventory = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [slideOverMode, setSlideOverMode] = useState<'add' | 'edit'>('add');
+
+  // Vérification d'accès admin
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user.role !== 'admin' || user.username.trim().toLowerCase() !== 'jema41') {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSave = (id: string, stock: number, velocity: number) => {
     updateStockLevel(id, stock);

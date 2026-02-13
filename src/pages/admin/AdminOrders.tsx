@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { OrderList, Order, UnboxingPersonalization } from '@/components/admin/OrderList';
 import { UnboxingDialog } from '@/components/admin/UnboxingDialog';
 import { useOrderManagement } from '@/hooks/use-order-management';
+import { useAuth } from '@/context/AuthContext';
 import {
   ShoppingCart,
   Clock,
@@ -18,11 +20,25 @@ import {
 } from '@/components/ui/tabs';
 
 const AdminOrders = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { orders, updateOrderStatus, updateUnboxing, getOrderStats } =
     useOrderManagement();
   const [selectedUnboxingId, setSelectedUnboxingId] = useState<string | null>(null);
   const [unboxingDialogOpen, setUnboxingDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+
+  // Vérification d'accès admin
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user.role !== 'admin' || user.username.trim().toLowerCase() !== 'jema41') {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const stats = getOrderStats();
 

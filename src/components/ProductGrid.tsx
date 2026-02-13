@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import { useAdmin } from '@/context/AdminContext';
@@ -18,6 +18,7 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
   const { products: storeProducts } = useAdminStore();
   const { getFeaturedProducts, featuredProductIds } = useFeaturedProducts();
   const { toast } = useToast();
+  const lastNonEmptyProductsRef = useRef<Product[]>([]);
 
   // Get featured products if any are selected, otherwise show all products
   const displayProducts = useMemo(() => {
@@ -29,6 +30,19 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
     }
     return products;
   }, [featuredProductIds, getFeaturedProducts, products]);
+
+  const stableDisplayProducts = useMemo(() => {
+    if (displayProducts.length > 0) {
+      return displayProducts;
+    }
+    return lastNonEmptyProductsRef.current;
+  }, [displayProducts]);
+
+  useEffect(() => {
+    if (displayProducts.length > 0) {
+      lastNonEmptyProductsRef.current = displayProducts;
+    }
+  }, [displayProducts]);
 
   // Debug logging
   useEffect(() => {
@@ -65,8 +79,8 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
   };
 
   return (
-    <section id="notre-selection" className="py-12 md:py-16 lg:py-24 px-4 md:px-0">
-      <div className="container mx-auto">
+    <section id="notre-selection" className="py-12 md:py-16 lg:py-24 px-5 sm:px-6 md:px-12 lg:px-20">
+      <div className="mx-auto max-w-7xl">
         {/* Section Header */}
         <div className="text-center mb-8 md:mb-12">
           <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-normal mb-2 md:mb-4 text-foreground">Notre Selection</h2>
@@ -80,8 +94,8 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
         </div>
 
         {/* Product Grid - Mobile optimized */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
-          {displayProducts.map((product, index) => {
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
+          {stableDisplayProducts.map((product, index) => {
             const storeProduct = storeProducts.find(p => p.id === product.id);
             return (
             <div 

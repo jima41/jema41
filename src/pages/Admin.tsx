@@ -47,13 +47,13 @@ const Admin = () => {
     }
     
     // Si c'est Jema41 admin, rediriger vers le dashboard
-    if (user.role === 'admin' && user.username === 'Jema41') {
+    if (user.role === 'admin' && user.username.trim().toLowerCase() === 'jema41') {
       navigate('/admin/dashboard');
       return;
     }
     
     // Si ce n'est pas admin ou pas Jema41, rediriger vers l'accueil
-    if (user.role !== 'admin' || user.username !== 'Jema41') {
+    if (user.role !== 'admin' || user.username.trim().toLowerCase() !== 'jema41') {
       navigate('/');
     }
   }, [user, navigate]);

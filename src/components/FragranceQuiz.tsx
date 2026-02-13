@@ -122,6 +122,7 @@ const FragranceQuiz = () => {
                 <img 
                   src={option.imageSrc} 
                   alt={option.imageAlt}
+                  loading="lazy"
                   className={`w-full h-32 object-cover rounded-lg mb-3 transition-transform duration-300 ${
                     selectedFamily === option.id ? 'scale-110' : 'scale-100'
                   }`}

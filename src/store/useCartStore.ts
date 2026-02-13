@@ -23,6 +23,32 @@ export interface CartItem {
   userId?: string;
 }
 
+// ========== GUEST CART LOCALSTORAGE HELPERS ==========
+const GUEST_CART_KEY = 'rayha_guest_cart';
+
+const loadGuestCart = (): CartItem[] => {
+  try {
+    const raw = localStorage.getItem(GUEST_CART_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveGuestCart = (items: CartItem[]) => {
+  try {
+    localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
+  } catch {
+    console.warn('⚠️ Impossible de sauvegarder le guest cart dans localStorage');
+  }
+};
+
+const clearGuestCartStorage = () => {
+  try {
+    localStorage.removeItem(GUEST_CART_KEY);
+  } catch { /* ignore */ }
+};
+
 interface CartStoreState {
   // State
   cartItems: CartItem[];
@@ -38,6 +64,7 @@ interface CartStoreState {
 
   // Initialization & Sync
   initializeCart: (userId: string) => Promise<void>;
+  initializeGuestCart: () => void;
   setupCartRealtime: (userId: string) => void;
   teardownCartRealtime: () => void;
 
@@ -51,9 +78,21 @@ interface CartStoreState {
     scent?: string;
     category?: string;
   }, userId: string) => Promise<void>;
+  addToCartGuest: (product: {
+    productId: string;
+    name: string;
+    brand: string;
+    price: number;
+    image?: string;
+    scent?: string;
+    category?: string;
+  }) => void;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  updateQuantityGuest: (cartItemId: string, quantity: number) => void;
   removeItem: (cartItemId: string) => Promise<void>;
+  removeItemGuest: (cartItemId: string) => void;
   clearCart: (userId: string) => Promise<void>;
+  mergeGuestCart: (userId: string) => Promise<void>;
   setIsCartOpen: (open: boolean) => void;
   setPromoCode: (code: string, discount: number) => void;
   clearPromoCode: () => void;
@@ -101,6 +140,16 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
   cartTotal: 0,
 
   // ========== INITIALIZATION ==========
+
+  /**
+   * Initialise le guest cart depuis localStorage
+   */
+  initializeGuestCart: () => {
+    const items = loadGuestCart();
+    const totals = calculateTotals(items);
+    set({ cartItems: items, ...totals, isLoading: false });
+    console.log(`📦 Guest cart chargé: ${items.length} articles`);
+  },
 
   /**
    * Initialise le panier depuis Supabase pour l'utilisateur connecté
@@ -237,7 +286,106 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
   // ========== ACTIONS ==========
 
   /**
-   * Ajoute un produit au panier
+   * Ajoute un produit au panier GUEST (localStorage uniquement)
+   */
+  addToCartGuest: (product) => {
+    const productPriceNum = typeof product.price === 'string'
+      ? parseFloat(product.price as unknown as string)
+      : product.price;
+
+    set((state) => {
+      const existingIndex = state.cartItems.findIndex(
+        (item) => item.productId === product.productId
+      );
+
+      let items: CartItem[];
+      if (existingIndex >= 0) {
+        items = state.cartItems.map((item, i) =>
+          i === existingIndex
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        const newItem: CartItem = {
+          id: `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          productId: product.productId,
+          name: product.name,
+          brand: product.brand,
+          price: productPriceNum,
+          image: product.image,
+          scent: product.scent,
+          category: product.category,
+          quantity: 1,
+        };
+        items = [...state.cartItems, newItem];
+      }
+
+      saveGuestCart(items);
+      return {
+        cartItems: items,
+        ...calculateTotals(items),
+        isCartOpen: true,
+      };
+    });
+    console.log('🛒 Article ajouté au guest cart');
+  },
+
+  /**
+   * Met à jour la quantité d'un article GUEST
+   */
+  updateQuantityGuest: (cartItemId, quantity) => {
+    if (quantity <= 0) {
+      get().removeItemGuest(cartItemId);
+      return;
+    }
+    set((state) => {
+      const items = state.cartItems.map((item) =>
+        item.id === cartItemId ? { ...item, quantity } : item
+      );
+      saveGuestCart(items);
+      return { cartItems: items, ...calculateTotals(items) };
+    });
+  },
+
+  /**
+   * Retire un article du guest cart
+   */
+  removeItemGuest: (cartItemId) => {
+    set((state) => {
+      const items = state.cartItems.filter((item) => item.id !== cartItemId);
+      saveGuestCart(items);
+      return { cartItems: items, ...calculateTotals(items) };
+    });
+  },
+
+  /**
+   * Fusionne le guest cart dans Supabase au login, puis vide le localStorage
+   */
+  mergeGuestCart: async (userId: string) => {
+    const guestItems = loadGuestCart();
+    if (guestItems.length === 0) return;
+
+    console.log(`🔀 Fusion du guest cart: ${guestItems.length} articles`);
+    try {
+      for (const item of guestItems) {
+        await supabaseAddToCart(userId, item.productId, {
+          name: item.name,
+          brand: item.brand,
+          price: item.price,
+          image: item.image,
+          scent: item.scent,
+          category: item.category,
+        }, item.quantity);
+      }
+      clearGuestCartStorage();
+      console.log('✅ Guest cart fusionné dans Supabase');
+    } catch (error) {
+      console.error('❌ Erreur mergeGuestCart:', error);
+    }
+  },
+
+  /**
+   * Ajoute un produit au panier (utilisateur connecté → Supabase)
    */
   addToCart: async (product, userId) => {
     try {

@@ -1,7 +1,19 @@
-import { Button } from '@/components/ui/button';
+import { useCallback } from 'react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import heroImage from '@/assets/hero-perfume.jpg';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 const Hero = () => {
+  const hasFinePointer = useMediaQuery('(hover: hover) and (pointer: fine)');
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotate = useMotionValue(0);
+
+  const springX = useSpring(x, { stiffness: 110, damping: 34, mass: 0.8 });
+  const springY = useSpring(y, { stiffness: 110, damping: 34, mass: 0.8 });
+  const springRotate = useSpring(rotate, { stiffness: 110, damping: 34, mass: 0.8 });
+
   const handleExplore = () => {
     const element = document.getElementById('notre-selection');
     if (element) {
@@ -9,17 +21,47 @@ const Hero = () => {
     }
   };
 
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    if (!hasFinePointer || isMobile) return;
+
+    const normalizedX = event.clientX / window.innerWidth - 0.5;
+    const normalizedY = event.clientY / window.innerHeight - 0.5;
+
+    const targetX = Math.max(-8, Math.min(8, normalizedX * 16));
+    const targetY = Math.max(-8, Math.min(8, normalizedY * 16));
+
+    x.set(targetX);
+    y.set(targetY * -1);
+    rotate.set(Math.max(-1.5, Math.min(1.5, normalizedX * 3)));
+  }, [hasFinePointer, x, y, rotate, isMobile]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!hasFinePointer || isMobile) return;
+    x.set(0);
+    y.set(0);
+    rotate.set(0);
+  }, [hasFinePointer, x, y, rotate, isMobile]);
+
   return (
-    <section className="relative min-h-screen sm:min-h-[70vh] md:min-h-[85vh] flex items-center overflow-hidden">
+    <section
+      className="relative min-h-screen sm:min-h-[70vh] md:min-h-[85vh] flex items-center overflow-hidden"
+      onMouseMove={hasFinePointer ? handleMouseMove : undefined}
+      onMouseLeave={hasFinePointer ? handleMouseLeave : undefined}
+    >
       {/* Background Image */}
       <div className="absolute inset-0">
-        <img src={heroImage} alt="Luxury Perfume Collection" className="w-full h-full object-cover object-center" />
+        <motion.img
+          src={heroImage}
+          alt="Luxury Perfume Collection"
+          className="w-full h-full object-cover object-center"
+          style={hasFinePointer && !isMobile ? { x: springX, y: springY, rotate: springRotate } : undefined}
+        />
         <div className="absolute inset-0 bg-gradient-to-r from-background/95 sm:from-background/80 via-background/50 sm:via-background/40 to-transparent" />
       </div>
 
       {/* Content */}
-      <div className="container mx-auto relative z-10 py-8 sm:py-12 md:py-0 px-4 md:px-0">
-        <div className="max-w-2xl animate-fade-up text-left">
+      <div className="relative z-10 w-full max-w-7xl px-6 py-8 sm:py-12 md:py-0 md:px-12 lg:px-20">
+        <div className="max-w-2xl animate-fade-up text-left md:text-left">
           {/* Kicker */}
           <span className="inline-block text-[11px] sm:text-xs font-medium text-[#A68A56] mb-3 sm:mb-4 tracking-[0.3em] uppercase">
             Collection 2025
@@ -68,13 +110,17 @@ const Hero = () => {
           </p>
           
           {/* CTA Button - Mobile version */}
-          <button onClick={handleExplore} className="sm:hidden px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border border-border/40 hover:border-[#D4AF37]/60 bg-gradient-to-r from-[#D4AF37]/5 to-transparent hover:from-[#D4AF37]/10 hover:to-[#D4AF37]/5 transition-all text-foreground font-serif text-sm sm:text-base font-light tracking-[0.15em] uppercase hover:shadow-lg hover:shadow-[#D4AF37]/10 min-h-12">
-            Explorer
+          <button onClick={handleExplore} className="sm:hidden group px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border-[0.5px] border-white/20 bg-white/10 backdrop-blur-md hover:bg-white/20 hover:border-[#D4AF37] transition-all duration-500 ease-in-out font-montserrat text-xs sm:text-sm font-light tracking-[0.2em] uppercase text-white min-h-12">
+            <span className="inline-block transition-transform duration-500 ease-in-out group-hover:-translate-y-0.5">
+              Explorer
+            </span>
           </button>
           
           {/* CTA Button - Desktop version */}
-          <button onClick={handleExplore} className="hidden sm:inline-block px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border border-border/40 hover:border-[#D4AF37]/60 bg-gradient-to-r from-[#D4AF37]/5 to-transparent hover:from-[#D4AF37]/10 hover:to-[#D4AF37]/5 transition-all text-foreground font-serif text-sm sm:text-base font-light tracking-[0.15em] uppercase hover:shadow-lg hover:shadow-[#D4AF37]/10 min-h-10">
-            Explorer la Collection
+          <button onClick={handleExplore} className="hidden sm:inline-block group px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border-[0.5px] border-white/20 bg-white/10 backdrop-blur-md hover:bg-white/20 hover:border-[#D4AF37] transition-all duration-500 ease-in-out font-montserrat text-xs sm:text-sm font-light tracking-[0.2em] uppercase text-black min-h-10">
+            <span className="inline-block transition-transform duration-500 ease-in-out group-hover:-translate-y-0.5">
+              Explorer la Collection
+            </span>
           </button>
         </div>
       </div>

@@ -28,18 +28,36 @@ export const useSyncAdminStore = () => {
 
     // Initialiser l'écoute des changements depuis d'autres onglets
     const unsubscribe = initializeSync((syncData: SyncData) => {
+      const currentState = useAdminStore.getState();
+      const incomingProducts = Array.isArray(syncData.products) ? syncData.products : [];
+      const incomingFeatured = Array.isArray(syncData.featuredProductIds) ? syncData.featuredProductIds : [];
+      const incomingOrders = Array.isArray(syncData.orders) ? syncData.orders : [];
+      const incomingCarts = Array.isArray(syncData.abandonedCarts) ? syncData.abandonedCarts : [];
+
+      // Évite d'écraser un état valide par un snapshot vide (cas de synchro instable mobile/cross-tab)
+      const shouldKeepLocalProducts = incomingProducts.length === 0 && currentState.products.length > 0;
+
       // Mettre à jour le store avec les données synchronisées
       useAdminStore.setState({
-        products: syncData.products,
-        orders: syncData.orders,
-        abandonedCarts: syncData.abandonedCarts,
-        featuredProductIds: syncData.featuredProductIds,
+        products: shouldKeepLocalProducts ? currentState.products : incomingProducts,
+        orders: incomingOrders,
+        abandonedCarts: incomingCarts,
+        featuredProductIds: shouldKeepLocalProducts ? currentState.featuredProductIds : incomingFeatured,
       });
     });
 
     // Charger les dernières données synchronisées au démarrage
     const lastSyncedData = getLastSyncedData();
-    if (lastSyncedData) {
+    const hasLastSyncedData =
+      !!lastSyncedData &&
+      (
+        (Array.isArray(lastSyncedData.products) && lastSyncedData.products.length > 0) ||
+        (Array.isArray(lastSyncedData.orders) && lastSyncedData.orders.length > 0) ||
+        (Array.isArray(lastSyncedData.abandonedCarts) && lastSyncedData.abandonedCarts.length > 0) ||
+        (Array.isArray(lastSyncedData.featuredProductIds) && lastSyncedData.featuredProductIds.length > 0)
+      );
+
+    if (hasLastSyncedData && lastSyncedData) {
       useAdminStore.setState({
         products: lastSyncedData.products,
         orders: lastSyncedData.orders,
@@ -55,6 +73,17 @@ export const useSyncAdminStore = () => {
 
   // Syncer les changements du store
   useEffect(() => {
+    // Évite de pousser un snapshot totalement vide qui écrase les autres vues
+    const hasAnyData =
+      products.length > 0 ||
+      orders.length > 0 ||
+      abandonedCarts.length > 0 ||
+      featuredProductIds.length > 0;
+
+    if (!hasAnyData) {
+      return;
+    }
+
     const syncData: SyncData = {
       products,
       featuredProductIds,

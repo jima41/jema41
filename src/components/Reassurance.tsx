@@ -25,9 +25,9 @@ const reassurances = [
 
 const Reassurance = () => {
   return (
-    <section className="py-12 md:py-16 lg:py-20 border-t border-border/50 px-4 md:px-6 lg:px-0">
-      <div className="container mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+    <section className="py-12 md:py-16 lg:py-20 border-t border-border/50 px-5 sm:px-6 md:px-12 lg:px-20">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
           {reassurances.map((item, index) => (
             <div 
               key={index} 

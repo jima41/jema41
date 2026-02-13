@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAdminStore } from '@/store/useAdminStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,30 +19,54 @@ export const SyncStatus = () => {
   const [flickerCount, setFlickerCount] = useState(0);
   const [isStable, setIsStable] = useState(true);
   const { products, productsLoading, isInitialized, productsError } = useAdminStore();
+  const previousCountRef = useRef<number>(products.length);
+  const lastNonZeroCountRef = useRef<number>(products.length > 0 ? products.length : 0);
+  const zeroTransitionTimeRef = useRef<number | null>(null);
 
-  // Monitor product count for flicker detection
+  // Monitor product count for true flicker detection (rapid N -> 0 -> N)
   useEffect(() => {
     const newCount = products.length;
+    const previousCount = previousCountRef.current;
+    const now = Date.now();
+
     setProductHistory(prev => {
       const updated = [...prev.slice(-9), newCount];
-      
-      // Détection du scintillement
-      if (prev.length > 0) {
-        const lastCount = prev[prev.length - 1];
-        if (lastCount > 0 && newCount !== lastCount) {
-          setFlickerCount(c => c + 1);
-          setIsStable(false);
-        } else if (updated.length >= 3) {
-          // Check if stable (same count for last 3 samples)
-          const recentCounts = updated.slice(-3);
-          if (recentCounts.every(c => c === recentCounts[0]) && recentCounts[0] > 0) {
-            setIsStable(true);
-          }
+
+      // Mémoriser le dernier volume valide
+      if (newCount > 0) {
+        lastNonZeroCountRef.current = newCount;
+      }
+
+      // Transition vers 0 depuis un état non vide: on démarre une fenêtre de détection
+      if (previousCount > 0 && newCount === 0) {
+        zeroTransitionTimeRef.current = now;
+      }
+
+      // Retour rapide au même volume non vide => vrai flicker
+      if (
+        previousCount === 0 &&
+        newCount > 0 &&
+        zeroTransitionTimeRef.current !== null &&
+        now - zeroTransitionTimeRef.current < 2500 &&
+        newCount === lastNonZeroCountRef.current
+      ) {
+        setFlickerCount(c => c + 1);
+        setIsStable(false);
+        zeroTransitionTimeRef.current = null;
+      }
+
+      // Revenir en état stable après quelques échantillons identiques > 0
+      if (updated.length >= 4) {
+        const recentCounts = updated.slice(-4);
+        if (recentCounts.every((count) => count === recentCounts[0]) && recentCounts[0] > 0) {
+          setIsStable(true);
         }
       }
-      
+
       return updated;
     });
+
+    previousCountRef.current = newCount;
   }, [products.length]);
 
   useEffect(() => {

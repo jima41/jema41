@@ -111,8 +111,8 @@ const AllProducts = () => {
     <div className="min-h-screen flex flex-col">
       <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
-      <main className="flex-1 py-6 md:py-8 lg:py-12 px-4 md:px-6 lg:px-0">
-        <div className="container mx-auto">
+      <main className="flex-1 py-6 md:py-8 lg:py-12 px-5 sm:px-6 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl">
           {/* Breadcrumb / Back Button */}
           <button
             onClick={() => navigate('/')}
@@ -129,7 +129,6 @@ const AllProducts = () => {
             </h1>
             <p className="text-xs md:text-sm text-foreground/70 leading-relaxed md:leading-loose max-w-full md:max-w-[70%] lg:max-w-[80%]">
               Découvrez notre collection complète de parfums d'exception, soigneusement sélectionnés pour tous les goûts et toutes les occasions.
-            </p>
             </p>
           </div>
 

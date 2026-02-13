@@ -78,6 +78,8 @@ export interface ProductRow {
   category: string | null;
   gender: string | null;
   scent: string | null;
+  is_featured: boolean;
+  featured_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -98,6 +100,8 @@ export interface CreateProductInput {
   category?: string;
   gender?: string;
   scent?: string;
+  is_featured?: boolean;
+  featured_order?: number;
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {
@@ -240,6 +244,73 @@ export async function updateProductMonthlySales(
   newMonthlySales: number
 ): Promise<ProductRow> {
   return updateProduct(id, { monthlysales: newMonthlySales });
+}
+
+/**
+ * Met à jour le statut featured d'un produit
+ */
+export async function updateFeaturedStatus(
+  id: string,
+  is_featured: boolean,
+  featured_order: number = 0
+): Promise<ProductRow> {
+  return updateProduct(id, { is_featured, featured_order } as any);
+}
+
+/**
+ * Met à jour le statut featured de plusieurs produits en batch
+ */
+export async function batchUpdateFeatured(
+  updates: Array<{ id: string; is_featured: boolean; featured_order: number }>
+): Promise<void> {
+  try {
+    // D'abord, remettre tous les produits à false
+    const { error: resetError } = await supabase
+      .from('products')
+      .update({ is_featured: false, featured_order: 0 })
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // update all
+    
+    if (resetError) {
+      console.warn('⚠️ Could not reset all featured flags:', resetError.message);
+    }
+
+    // Puis mettre à jour chaque produit sélectionné
+    for (const update of updates) {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_featured: update.is_featured, featured_order: update.featured_order })
+        .eq('id', update.id);
+      
+      if (error) {
+        console.error(`❌ Failed to update featured status for ${update.id}:`, error.message);
+      }
+    }
+    
+    console.log(`✅ Batch featured update: ${updates.length} produits mis à jour`);
+  } catch (error) {
+    throw SupabaseError.fromError(error, 'batchUpdateFeatured');
+  }
+}
+
+/**
+ * Récupère les produits featured triés par order
+ */
+export async function fetchFeaturedProducts(): Promise<ProductRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_featured', true)
+      .order('featured_order', { ascending: true });
+
+    if (error) {
+      throw SupabaseError.fromError(error, 'fetchFeaturedProducts');
+    }
+
+    return (data || []) as ProductRow[];
+  } catch (error) {
+    throw SupabaseError.fromError(error, 'fetchFeaturedProducts');
+  }
 }
 
 /**

@@ -96,7 +96,7 @@ const ProductCard = ({
 
   return (
     <div 
-      className="product-card group text-left w-full relative"
+      className="product-card group text-left w-full relative transition-shadow duration-700 ease-in-out shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_42px_rgba(15,23,42,0.14)]"
       onClick={() => navigate(`/product/${id}`)}
       role="button"
       tabIndex={0}
@@ -111,18 +111,16 @@ const ProductCard = ({
       <motion.div 
         className="relative aspect-square overflow-hidden rounded-lg md:rounded-xl bg-secondary/30 mb-2 md:mb-3"
         whileHover={{ scale: 1.02 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={{ duration: 0.6, ease: 'easeInOut' }}
       >
         {image ? (
           <motion.img
             src={image}
             alt={name}
-            className={`w-full h-full object-cover img-zoom transition-all duration-300 ${
+            className={`w-full h-full object-cover img-zoom transition-transform duration-700 ease-in-out group-hover:scale-[1.05] ${
               isOutOfStock ? 'grayscale backdrop-blur-sm' : ''
             }`}
             loading="lazy"
-            whileHover={!isOutOfStock ? { scale: 1.05 } : undefined}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
             onError={(e) => {
               console.error(`❌ Image failed to load: ${image}`, e);
             }}

@@ -7,7 +7,6 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useAnalytics } from '@/context/AnalyticsContext';
-import { supabase } from '@/integrations/supabase/supabase';
 import CartDrawer from '@/components/CartDrawer';
 
 const Login = () => {
@@ -67,10 +66,6 @@ const Login = () => {
       );
 
       await Promise.race([loginPromise, timeoutPromise]);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        throw new Error('Connexion non confirmée. Vérifiez vos identifiants et réessayez.');
-      }
       // La navigation est gérée par le useEffect qui observe user
     } catch (err) {
       console.error('❌ handleSubmit error:', err);
@@ -148,7 +143,6 @@ const Login = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors min-h-10 flex items-center justify-center w-10"
-                  >
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

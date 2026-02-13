@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Edit2, Trash2, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 interface User {
   id: string;
@@ -18,10 +20,24 @@ interface UserModalData {
 }
 
 const AdminClients = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [modal, setModal] = useState<UserModalData>({ user: null, isOpen: false });
   const [editForm, setEditForm] = useState<Partial<User>>({});
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Vérification d'accès admin
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user.role !== 'admin' || user.username.trim().toLowerCase() !== 'jema41') {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     loadUsers();

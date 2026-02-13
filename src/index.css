@@ -6,6 +6,10 @@
 /* All colors in HSL format */
 
 @layer base {
+  html, body {
+    overflow-x: hidden;
+  }
+
   :root {
     /* Core Palette - Organic Luxury */
     --background: 43 33% 96%; /* Off-white cream #F9F7F2 */
@@ -265,6 +269,26 @@
     }
     to {
       transform: translateX(0);
+    }
+  }
+
+  /* Bottom sheet slide up (mobile cart) */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .animate-slide-up {
+      animation: none;
     }
   }
 

@@ -17,14 +17,12 @@ interface CartContextType {
   promoDiscount: number;
   setPromoCode: (code: string, discount: number) => void;
   clearPromoCode: () => void;
+  applyPromoCode: (code: string, discount: number) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  // Le CartProvider est maintenant une enveloppe autour du store Zustand
-  // Tous les états viennent du store Zustand
-  
   return (
     <CartContext.Provider value={undefined as any}>
       {children}
@@ -33,14 +31,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 };
 
 // Hook backward compatible qui utilise le store Zustand
+// Supporte le mode invité (guest cart) ET le mode authentifié
 export const useCart = () => {
   const {
     cartItems,
     cartItemsCount,
     isCartOpen,
     addToCart: addToCartStore,
-    updateQuantity,
-    removeItem,
+    addToCartGuest,
+    updateQuantity: updateQuantityStore,
+    updateQuantityGuest,
+    removeItem: removeItemStore,
+    removeItemGuest,
     setIsCartOpen,
     promoCode,
     promoDiscount,
@@ -50,13 +52,10 @@ export const useCart = () => {
 
   const { user } = useAuth();
 
-  // Wrapper pour addToCart - injecte automatiquement userId
+  const isGuest = !user?.id;
+
+  // Wrapper pour addToCart : guest = localStorage, auth = Supabase
   const addToCart = (product: Omit<CartItem, 'quantity'>) => {
-    if (!user?.id) {
-      console.warn('⚠️ Ajout au panier sans utilisateur connecté');
-      return;
-    }
-    // Map les propriétés du produit vers le format attendu par le store
     const productData = {
       productId: (product as any).productId || (product as any).id || '',
       name: product.name,
@@ -66,7 +65,35 @@ export const useCart = () => {
       scent: (product as any).scent,
       category: (product as any).category,
     };
-    addToCartStore(productData, user.id);
+
+    if (isGuest) {
+      addToCartGuest(productData);
+    } else {
+      addToCartStore(productData, user!.id);
+    }
+  };
+
+  // Wrapper pour updateQuantity : guest vs auth
+  const updateQuantity = (id: string, quantity: number) => {
+    if (isGuest || id.startsWith('guest_')) {
+      updateQuantityGuest(id, quantity);
+    } else {
+      updateQuantityStore(id, quantity);
+    }
+  };
+
+  // Wrapper pour removeItem : guest vs auth
+  const removeItem = (id: string) => {
+    if (isGuest || id.startsWith('guest_')) {
+      removeItemGuest(id);
+    } else {
+      removeItemStore(id);
+    }
+  };
+
+  // Alias pour les composants qui utilisent applyPromoCode
+  const applyPromoCode = (code: string, discount: number) => {
+    setPromoCode(code, discount);
   };
 
   return {
@@ -81,5 +108,6 @@ export const useCart = () => {
     promoDiscount,
     setPromoCode,
     clearPromoCode,
+    applyPromoCode,
   };
 };

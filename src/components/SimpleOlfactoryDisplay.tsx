@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { OlfactoryFamily } from '@/lib/olfactory';
+import { getBestFamily } from '@/lib/olfactory';
 
 interface SimpleOlfactoryDisplayProps {
   notes_tete?: string[];
@@ -7,17 +8,6 @@ interface SimpleOlfactoryDisplayProps {
   notes_fond?: string[];
   families?: OlfactoryFamily[];
 }
-
-// Valid families after removing Hespéridé and Aromatique
-const VALID_FAMILIES: OlfactoryFamily[] = [
-  'Floral',
-  'Boisé',
-  'Gourmand',
-  'Oriental',
-  'Épicé',
-  'Cuiré',
-  'Frais/Aquatique',
-];
 
 // Helper: notes are now stored as labels, return as-is or convert legacy snake_case
 const getNoteLabel = (note: string): string => {
@@ -33,8 +23,11 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
   notes_fond = [],
   families = [],
 }) => {
-  // Filter out invalid families
-  const validFamilies = families.filter((f) => VALID_FAMILIES.includes(f));
+  // Sélectionner la famille olfactive unique la plus représentative
+  const bestFamily = useMemo(
+    () => getBestFamily(notes_tete, notes_coeur, notes_fond, families),
+    [notes_tete, notes_coeur, notes_fond, families]
+  );
   
   if (notes_tete.length === 0 && notes_coeur.length === 0 && notes_fond.length === 0) {
     return null;
@@ -42,22 +35,17 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Familles Olfactives */}
-      {validFamilies.length > 0 && (
+      {/* Famille Olfactive (unique) */}
+      {bestFamily && (
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Famille{validFamilies.length > 1 ? 's' : ''} Olfactive{validFamilies.length > 1 ? 's' : ''}
+            Famille Olfactive
           </h3>
-          <div className="flex flex-wrap gap-2">
-            {validFamilies.map((family) => (
-              <span
-                key={family}
-                className="px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:border-foreground/40 text-foreground/70 hover:text-foreground transition-all duration-300"
-              >
-                {family}
-              </span>
-            ))}
-          </div>
+          <span
+            className="inline-flex px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:border-foreground/40 text-foreground/70 hover:text-foreground transition-all duration-300"
+          >
+            {bestFamily}
+          </span>
         </div>
       )}
 
@@ -66,7 +54,7 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
           Composition Olfactive
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
           {/* Tête - Doré */}
           {notes_tete.length > 0 && (
             <div className="rounded-lg p-4 border border-[#D4AF37]/40 hover:border-[#D4AF37]/70 transition-colors">

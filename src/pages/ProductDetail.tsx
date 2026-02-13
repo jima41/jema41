@@ -209,7 +209,7 @@ const ProductDetail = () => {
       <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
       <main className="flex-1 py-8 md:py-12 lg:py-16">
-        <div className="container mx-auto px-4 md:px-6 lg:px-0">
+        <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-20">
           {/* Breadcrumb / Back Button */}
           <button
             onClick={() => navigate('/all-products')}
@@ -220,9 +220,9 @@ const ProductDetail = () => {
           </button>
 
           {/* Product Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 lg:gap-16 mb-12 md:mb-16 lg:mb-24">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 lg:gap-16 mb-12 md:mb-16 lg:mb-24 items-start">
             {/* Product Image */}
-            <div className="flex items-center justify-center">
+            <div>
               <motion.div 
                 className="aspect-square w-full rounded-xl md:rounded-2xl bg-secondary/30 overflow-hidden relative group"
                 whileHover={{ scale: 1.02 }}
@@ -283,7 +283,7 @@ const ProductDetail = () => {
             </div>
 
             {/* Product Info */}
-            <div className="flex flex-col justify-start md:justify-center space-y-3 md:space-y-4 lg:space-y-6">
+            <div className="flex flex-col justify-start space-y-3 md:space-y-4 lg:space-y-6 md:pr-4 lg:pr-8">
               <div>
                 <p className="text-[10px] md:text-xs lg:text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1 md:mb-2">
                   {product.brand}
@@ -297,7 +297,7 @@ const ProductDetail = () => {
               <div className="space-y-3 md:space-y-4 lg:space-y-6">
                 {/* Description */}
                 <div className="mt-2 md:mt-3 lg:mt-4">
-                  <p className="text-xs md:text-sm text-foreground/70 leading-relaxed md:leading-loose">
+                  <p className="text-xs md:text-sm text-foreground/70 leading-relaxed md:leading-loose max-w-prose">
                     {product.description}
                   </p>
                 </div>
@@ -367,65 +367,106 @@ const ProductDetail = () => {
 
 
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2 md:gap-3 lg:gap-4 pt-3 md:pt-4 lg:pt-6 sticky bottom-0 md:static bg-gradient-to-t from-background via-background to-transparent md:to-transparent -mx-4 md:mx-0 px-4 md:px-0 py-3 md:py-0 md:bg-none md:from-transparent">
-                {stock === 0 ? (
-                  <button
-                    disabled
-                    className="w-full min-h-12 border border-border/30 rounded-lg text-foreground/50 text-xs md:text-sm font-medium hover:border-border/30 transition-colors cursor-not-allowed"
-                  >
-                    Épuisé
-                  </button>
-                ) : (
-                  <>
-                    {/* Quantity Selector & Add to Cart - Single Row on Mobile */}
-                    <div className="flex flex-col md:flex-row gap-2 md:gap-3">
-                      {/* Quantity Selector */}
-                      <div className="flex items-center min-h-12 border border-border/30 rounded-lg overflow-hidden flex-shrink-0">
+              {/* Action Buttons - Desktop sticky, Mobile fixed bottom bar */}
+              <div>
+                {/* Desktop sticky */}
+                <div className="hidden md:flex flex-col gap-3 pt-4 lg:pt-6 sticky top-24">
+                  {stock === 0 ? (
+                    <button
+                      disabled
+                      className="w-full min-h-12 border border-border/30 rounded-lg text-foreground/50 text-sm font-medium hover:border-border/30 transition-colors cursor-not-allowed"
+                    >
+                      Épuisé
+                    </button>
+                  ) : (
+                    <>
+                      <div className="flex flex-row gap-3">
+                        <div className="flex items-center min-h-12 border border-border/30 rounded-lg overflow-hidden flex-shrink-0">
+                          <button
+                            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                            disabled={quantity <= 1}
+                            className="w-12 min-h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="flex-1 min-h-12 flex items-center justify-center text-sm font-medium text-foreground select-none min-w-12">
+                            {quantity}
+                          </span>
+                          <button
+                            onClick={() => setQuantity((q) => Math.min(stock, q + 1))}
+                            disabled={quantity >= stock}
+                            className="w-12 min-h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <button
+                          onClick={handleAddToCart}
+                          className="flex-1 min-h-12 border border-foreground/30 hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] rounded-lg text-sm font-medium transition-all duration-300 hover:shadow-sm flex items-center justify-center gap-2 group"
+                        >
+                          <ShoppingCart className="w-5 h-5 group-hover:animate-bounce" />
+                          <span>Ajouter</span>
+                        </button>
+                        <motion.button
+                          onClick={handleToggleFavorite}
+                          whileHover={{ scale: 1.05, y: -1 }}
+                          whileTap={{ scale: 0.95 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                          className="w-12 min-h-12 border border-border/30 rounded-lg hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] flex items-center justify-center transition-all duration-300"
+                        >
+                          <Heart className={`w-5 h-5 transition-all duration-300 ${isFav ? 'fill-[#D4AF37] text-[#D4AF37]' : ''}`} />
+                        </motion.button>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {/* Mobile fixed bottom bar */}
+                <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border/30 px-4 py-3 flex gap-2 items-center" style={{boxShadow:'0 -2px 16px 0 rgba(0,0,0,0.07)'}}>
+                  {stock === 0 ? (
+                    <button
+                      disabled
+                      className="flex-1 min-h-[48px] border border-border/30 rounded-lg text-foreground/50 text-xs font-medium hover:border-border/30 transition-colors cursor-not-allowed"
+                    >
+                      Épuisé
+                    </button>
+                  ) : (
+                    <>
+                      <div className="flex items-center min-h-[48px] border border-border/30 rounded-lg overflow-hidden flex-shrink-0">
                         <button
                           onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                           disabled={quantity <= 1}
-                          className="w-10 md:w-12 min-h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="w-10 min-h-[48px] flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                          <Minus className="w-3 md:w-4 h-3 md:h-4" />
+                          <Minus className="w-4 h-4" />
                         </button>
-                        <span className="flex-1 min-h-12 flex items-center justify-center text-xs md:text-sm font-medium text-foreground select-none min-w-12">
+                        <span className="flex-1 min-h-[48px] flex items-center justify-center text-xs font-medium text-foreground select-none min-w-10">
                           {quantity}
                         </span>
                         <button
                           onClick={() => setQuantity((q) => Math.min(stock, q + 1))}
                           disabled={quantity >= stock}
-                          className="w-10 md:w-12 min-h-12 flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="w-10 min-h-[48px] flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-secondary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                          <Plus className="w-3 md:w-4 h-3 md:h-4" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
-
-                      {/* Add to Cart */}
                       <button
                         onClick={handleAddToCart}
-                        className="flex-1 min-h-12 border border-foreground/30 hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] rounded-lg text-xs md:text-sm font-medium transition-all duration-300 hover:shadow-sm flex items-center justify-center gap-1.5 md:gap-2 group"
+                        className="flex-1 min-h-[48px] border border-foreground/30 hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] rounded-lg text-xs font-medium transition-all duration-300 hover:shadow-sm flex items-center justify-center gap-1.5 group active:scale-95"
                       >
-                        <ShoppingCart className="w-4 md:w-5 h-4 md:h-5 group-hover:animate-bounce" />
-                        <span className="truncate md:truncate-none">Ajouter</span>
+                        <ShoppingCart className="w-4 h-4 group-hover:animate-bounce" />
+                        <span>Ajouter</span>
                       </button>
-                    </div>
-                    
-                    {/* Favorite Button */}
-                    <motion.button
-                      onClick={handleToggleFavorite}
-                      whileHover={{ scale: 1.05, y: -1 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                      className="w-full md:w-12 min-h-12 md:min-h-10 border border-border/30 rounded-lg hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] flex items-center justify-center transition-all duration-300 gap-1.5 md:gap-0"
-                    >
-                      <Heart 
-                        className={`w-4 md:w-5 h-4 md:h-5 transition-all duration-300 ${isFav ? 'fill-[#D4AF37] text-[#D4AF37]' : ''}`}
-                      />
-                      <span className="md:hidden text-xs font-medium">Favori</span>
-                    </motion.button>
-                  </>
-                )}
+                      <motion.button
+                        onClick={handleToggleFavorite}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-10 min-h-[48px] border border-border/30 rounded-lg hover:border-[#D4AF37]/60 text-foreground hover:text-[#D4AF37] flex items-center justify-center transition-all duration-300"
+                      >
+                        <Heart className={`w-4 h-4 transition-all duration-300 ${isFav ? 'fill-[#D4AF37] text-[#D4AF37]' : ''}`} />
+                      </motion.button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Additional Info */}

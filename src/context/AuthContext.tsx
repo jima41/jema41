@@ -1,6 +1,15 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/supabase';
 
+const DEFAULT_ADMIN_USERNAME = 'jema41';
+const DEFAULT_ADMIN_EMAIL = 'admin@rayha.com';
+
+const isAdminEmail = (email: string) =>
+  email.trim().toLowerCase() === (import.meta.env.VITE_ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).toLowerCase();
+
+const getAdminDisplayUsername = () =>
+  import.meta.env.VITE_ADMIN_USERNAME || 'Jema41';
+
 export interface User {
   id: string;
   username: string;
@@ -29,11 +38,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  */
 const buildFallbackProfile = (authUserId: string, authEmail: string): User => ({
   id: authUserId,
-  username: authEmail.split('@')[0],
+  username: isAdminEmail(authEmail) ? getAdminDisplayUsername() : authEmail.split('@')[0],
   email: authEmail,
   firstName: '',
   lastName: '',
-  role: authEmail === 'admin@rayha.com' ? 'admin' : 'user',
+  role: isAdminEmail(authEmail) ? 'admin' : 'user',
 });
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
@@ -67,8 +76,8 @@ const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<
         .upsert({
           id: authUserId,
           email: authEmail,
-          username: authEmail.split('@')[0],
-          role: authEmail === 'admin@rayha.com' ? 'admin' : 'user',
+          username: isAdminEmail(authEmail) ? getAdminDisplayUsername() : authEmail.split('@')[0],
+          role: isAdminEmail(authEmail) ? 'admin' : 'user',
           first_name: '',
           last_name: '',
         })
@@ -82,7 +91,7 @@ const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<
 
       return {
         id: newProfile.id,
-        username: newProfile.username || authEmail.split('@')[0],
+        username: newProfile.username || (isAdminEmail(authEmail) ? getAdminDisplayUsername() : authEmail.split('@')[0]),
         email: newProfile.email || authEmail,
         firstName: newProfile.first_name || '',
         lastName: newProfile.last_name || '',
@@ -92,7 +101,7 @@ const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<
 
     return {
       id: data.id,
-      username: data.username || authEmail.split('@')[0],
+      username: data.username || (isAdminEmail(authEmail) ? getAdminDisplayUsername() : authEmail.split('@')[0]),
       email: data.email || authEmail,
       firstName: data.first_name || '',
       lastName: data.last_name || '',
@@ -218,7 +227,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (!foundEmail) {
-          throw new Error('Pseudo introuvable. Vérifiez votre pseudo ou utilisez votre email.');
+          const normalizedIdentifier = email.toLowerCase();
+          const configuredAdminUsername = (import.meta.env.VITE_ADMIN_USERNAME || DEFAULT_ADMIN_USERNAME).toLowerCase();
+          const configuredAdminEmail = import.meta.env.VITE_ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL;
+
+          if (normalizedIdentifier === configuredAdminUsername) {
+            console.warn('🔐 login: fallback admin pseudo appliqué');
+            foundEmail = configuredAdminEmail;
+          }
+        }
+
+        if (!foundEmail) {
+          throw new Error('Connexion par pseudo indisponible ou pseudo introuvable. Essayez avec votre email.');
         }
         email = foundEmail;
       }

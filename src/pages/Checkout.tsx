@@ -58,6 +58,13 @@ const Checkout = () => {
     }
   }, [user]);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+
   // Redirect if cart is empty
   useEffect(() => {
     if (cartItems.length === 0) {

@@ -6,33 +6,40 @@ import { supabase } from '@/integrations/supabase/supabase';
 
 /**
  * Composant qui gère l'initialisation et la synchronisation en temps réel
- * des données utilisateur (panier et favoris) depuis Supabase
+ * des données utilisateur (panier et favoris) depuis Supabase.
  *
- * À montrer à la racine de l'app (dans App.tsx) pour synchroniser automatiquement
- * les données utilisateur lors de la connexion/déconnexion
+ * - Quand l'utilisateur est connecté : merge le guest cart dans Supabase,
+ *   puis charge le panier complet depuis la DB et active le realtime.
+ * - Quand l'utilisateur se déconnecte : restaure le panier local
+ *   depuis le localStorage (guest cart).
  */
 export const UserDataSyncInitializer = () => {
   const { user } = useAuth();
-  const { initializeCart, setupCartRealtime, teardownCartRealtime } = useCartStore();
+  const {
+    initializeCart,
+    initializeGuestCart,
+    mergeGuestCart,
+    setupCartRealtime,
+    teardownCartRealtime,
+  } = useCartStore();
   const { initializeFavorites, setupFavoritesRealtime, teardownFavoritesRealtime } = useFavoritesStore();
 
   useEffect(() => {
     if (!user?.id) {
-      // Utilisateur déconnecté: nettoyer les subscriptions et vider les données
-      console.log('🔐 Utilisateur déconnecté - nettoyage des données');
+      // Utilisateur déconnecté: nettoyer les subscriptions et charger le guest cart
+      console.log('🔐 Utilisateur déconnecté - chargement guest cart');
       teardownCartRealtime();
       teardownFavoritesRealtime();
-      useCartStore.setState({ cartItems: [] });
+      initializeGuestCart();
       useFavoritesStore.setState({ favorites: [] });
       return;
     }
 
-    // Utilisateur connecté: initialiser et synchroniser les données
+    // Utilisateur connecté: fusionner le guest cart, puis initialiser depuis Supabase
     console.log(`✅ Utilisateur connecté: ${user.email}`);
 
     const initializeUserData = async () => {
       try {
-        // Timeout de sécurité pour éviter un blocage si Supabase ne répond pas
         const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
           Promise.race([
             promise,
@@ -41,11 +48,14 @@ export const UserDataSyncInitializer = () => {
             ),
           ]);
 
-        // Charger le panier (avec timeout de 10s)
+        // 1. Fusionner le guest cart dans Supabase
+        await withTimeout(mergeGuestCart(user.id), 15000, 'mergeGuestCart');
+
+        // 2. Charger le panier complet depuis Supabase (inclut les articles fusionnés)
         await withTimeout(initializeCart(user.id), 10000, 'initializeCart');
         setupCartRealtime(user.id);
 
-        // Charger les favoris (avec timeout de 10s)
+        // 3. Charger les favoris
         await withTimeout(initializeFavorites(user.id), 10000, 'initializeFavorites');
         setupFavoritesRealtime(user.id);
 
@@ -57,14 +67,12 @@ export const UserDataSyncInitializer = () => {
 
     initializeUserData();
 
-    // Cleanup on unmount
     return () => {
       teardownCartRealtime();
       teardownFavoritesRealtime();
     };
-  }, [user?.id, initializeCart, setupCartRealtime, teardownCartRealtime, initializeFavorites, setupFavoritesRealtime, teardownFavoritesRealtime]);
+  }, [user?.id]);
 
-  // Ce composant n'affiche rien, sert uniquement à orchestrer la synchronisation
   return null;
 };
 

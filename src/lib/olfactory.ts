@@ -226,3 +226,109 @@ export const getCoeurNoteIds = (): CoeurNote[] =>
 export const getFondNoteIds = (): FondNote[] =>
   Object.keys(OLFACTORY_DICTIONARY.fond) as FondNote[];
 
+// ============================================================================
+// SCORING : MEILLEURE FAMILLE UNIQUE
+// ============================================================================
+
+interface FamilyRule {
+  family: OlfactoryFamily;
+  keywords: string[];
+}
+
+const FAMILY_RULES: FamilyRule[] = [
+  {
+    family: 'Floral',
+    keywords: [
+      'rose', 'jasmin', 'iris', 'tuberose', 'tubéreuse', 'pivoine', 'magnolia', 'freesia',
+      'fleur d\'oranger', 'ylang', 'géranium', 'geranium', 'gardénia', 'gardenia',
+      'violette', 'cyclamen', 'muguet', 'fleur de lys', 'néroli', 'neroli',
+    ],
+  },
+  {
+    family: 'Boisé',
+    keywords: [
+      'santal', 'cèdre', 'cedre', 'vétiver', 'vetiver', 'oud', 'patchouli',
+      'mousse de chêne', 'mousse_chene', 'bois',
+    ],
+  },
+  {
+    family: 'Gourmand',
+    keywords: [
+      'vanille', 'caramel', 'chocolat', 'praliné', 'praline', 'miel',
+      'fève tonka', 'tonka', 'café', 'cafe', 'noix de coco',
+    ],
+  },
+  {
+    family: 'Oriental',
+    keywords: [
+      'ambre', 'encens', 'myrrhe', 'benjoin', 'musc', 'ciste', 'labdanum',
+    ],
+  },
+  {
+    family: 'Épicé',
+    keywords: [
+      'poivre', 'cannelle', 'cardamome', 'safran', 'girofle', 'muscade', 'gingembre',
+    ],
+  },
+  {
+    family: 'Cuiré',
+    keywords: [
+      'cuir', 'daim', 'tabac', 'suede', 'castorium', 'civette',
+    ],
+  },
+  {
+    family: 'Frais/Aquatique',
+    keywords: [
+      'marin', 'calone', 'menthe', 'aldéhyde', 'aldehyde', 'pomme verte',
+      'citron', 'bergamote', 'mandarine', 'pamplemousse', 'lime', 'yuzu',
+      'verveine', 'citronnelle', 'lavande', 'rhubarbe',
+    ],
+  },
+];
+
+/**
+ * Retourne la famille olfactive unique la plus représentative des notes du produit.
+ * Pondération : note de Fond = 3, Cœur = 2, Tête = 1.
+ * En cas d'égalité, l'ordre de FAMILY_RULES sert de tiebreaker.
+ */
+export const getBestFamily = (
+  notes_tete: string[] = [],
+  notes_coeur: string[] = [],
+  notes_fond: string[] = [],
+  existingFamilies: OlfactoryFamily[] = [],
+): OlfactoryFamily | null => {
+  // Si le produit n'a qu'une seule famille déclarée, la retourner directement
+  const validExisting = existingFamilies.filter(f =>
+    (FAMILY_RULES.map(r => r.family) as string[]).includes(f)
+  );
+  if (validExisting.length === 1) return validExisting[0];
+
+  // Notes pondérées : (label normalisé, poids)
+  const weighted: { label: string; weight: number }[] = [
+    ...notes_fond.map(n => ({ label: n.toLowerCase(), weight: 3 })),
+    ...notes_coeur.map(n => ({ label: n.toLowerCase(), weight: 2 })),
+    ...notes_tete.map(n => ({ label: n.toLowerCase(), weight: 1 })),
+  ];
+
+  if (weighted.length === 0 && validExisting.length > 0) return validExisting[0];
+  if (weighted.length === 0) return null;
+
+  // Calcul de score pour chaque famille
+  const scores = FAMILY_RULES.map(rule => {
+    let score = 0;
+    for (const { label, weight } of weighted) {
+      if (rule.keywords.some(k => label.includes(k))) {
+        score += weight;
+      }
+    }
+    // Bonus léger si la famille figure dans `existingFamilies`
+    if (validExisting.includes(rule.family)) score += 0.5;
+    return { family: rule.family, score };
+  });
+
+  // Trier par score décroissant (l'ordre initial sert de tiebreaker stable)
+  scores.sort((a, b) => b.score - a.score);
+
+  return scores[0].score > 0 ? scores[0].family : (validExisting[0] || null);
+};
+

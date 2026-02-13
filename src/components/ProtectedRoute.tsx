@@ -84,7 +84,10 @@ export const ProtectedRoute = ({
   }
 
   // Check if user has required username (for admin)
-  if (requiredUsername && user.username !== requiredUsername) {
+  if (
+    requiredUsername &&
+    user.username.trim().toLowerCase() !== requiredUsername.trim().toLowerCase()
+  ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-admin-bg to-admin-card flex items-center justify-center p-4">
         <div className="glass-panel border border-admin-border rounded-lg p-8 max-w-md text-center">

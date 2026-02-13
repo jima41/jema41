@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GripVertical, Check, X, ArrowUp, ArrowDown, Plus } from 'lucide-react';
+import { GripVertical, Check, X, ArrowUp, ArrowDown, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdminProducts } from '@/store/useAdminStore';
 import { useFeaturedProducts } from '@/store/useAdminStore';
@@ -13,6 +13,7 @@ const FeaturedProductsManager = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>(featuredProductIds);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setSelectedIds(featuredProductIds);
@@ -55,9 +56,16 @@ const FeaturedProductsManager = () => {
     }
   };
 
-  const handleSave = () => {
-    setFeaturedProducts(selectedIds);
-    setHasChanges(false);
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await setFeaturedProducts(selectedIds);
+      setHasChanges(false);
+    } catch (error) {
+      console.error('❌ Erreur sauvegarde featured:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -237,10 +245,17 @@ const FeaturedProductsManager = () => {
         </Button>
         <Button
           onClick={handleSave}
-          disabled={!hasChanges}
+          disabled={!hasChanges || isSaving}
           className="bg-gradient-to-r from-admin-gold/20 to-admin-gold/10 hover:from-admin-gold/30 hover:to-admin-gold/20 border border-admin-gold/40 text-admin-gold hover:text-admin-gold disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Enregistrer les modifications
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Sauvegarde...
+            </>
+          ) : (
+            'Enregistrer les modifications'
+          )}
         </Button>
       </div>
     </div>

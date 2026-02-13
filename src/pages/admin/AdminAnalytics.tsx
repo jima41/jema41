@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAnalytics } from '@/context/AnalyticsContext';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -19,14 +21,28 @@ const GOLD = '#D4AF37';
 const GOLD_LIGHT = '#E8D48B';
 const COLORS = ['#D4AF37', '#A68A56', '#8B7D6B', '#6B5D4F', '#4A4238', '#2D251E'];
 
-const fontSerif = { fontFamily: 'Cormorant Garamond, serif' };
-
-export default function AdminAnalytics() {
+const AdminAnalytics = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { getAnalyticsStats, getAllSessions, clearAnalytics, currentSession, refreshTick } = useAnalytics();
   const { products: storeProducts, orders } = useAdminStore();
   const { favorites } = useFavoritesStore();
   const [selectedView, setSelectedView] = useState<'overview' | 'pages' | 'products' | 'ranking' | 'sessions'>('overview');
   const [now, setNow] = useState(Date.now());
+
+  // Vérification d'accès admin
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user.role !== 'admin' || user.username.trim().toLowerCase() !== 'jema41') {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const fontSerif = { fontFamily: 'Cormorant Garamond, serif' };
 
   // Live timer pour les durées
   useEffect(() => {
@@ -1032,3 +1048,5 @@ function KpiCard({ title, value, subtitle, icon, isText, small, color }: {
     </Card>
   );
 }
+
+export default AdminAnalytics;

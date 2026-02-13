@@ -1,234 +1,317 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, ChevronRight, RotateCcw, Sparkles } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { RotateCcw, ShoppingBag, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useCart } from '@/context/CartContext';
-import { useToast } from '@/hooks/use-toast';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 type OlfactoryFamily = 'boisé' | 'frais' | 'épicé' | 'gourmand' | 'floral' | 'oriental' | 'cuiré';
-type QuizStep = 'intro' | 'q1' | 'q2' | 'q3' | 'reveal' | 'result';
 
-interface QuizAnswer {
-  label: string;
-  family: OlfactoryFamily;
-  emoji: string;
+type AuraTone = 'gold' | 'fresh' | 'floral' | 'amber' | 'leather' | 'spicy' | 'woody';
+
+interface QuizOption {
+  id: string;
+  title: string;
+  description: string;
+  auraTone: AuraTone;
 }
 
 interface QuizQuestion {
-  step: 'q1' | 'q2' | 'q3';
-  moment: string;
+  id: string;
   title: string;
   subtitle: string;
-  answers: QuizAnswer[];
+  options: QuizOption[];
+}
+
+interface AnswerSelection {
+  questionId: string;
+  option: QuizOption;
+}
+
+interface FamilyScore {
+  family: OlfactoryFamily;
+  label: string;
+  value: number;
+  percentage: number;
+}
+
+interface ProductRecommendation {
+  id: string;
+  name: string;
+  brand: string;
+  price: number;
+  image?: string;
+  matchScore: number;
 }
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-const FAMILY_COLORS: Record<OlfactoryFamily, { primary: string; glow: string; label: string }> = {
-  frais:    { primary: '#A8D8EA', glow: 'rgba(168,216,234,0.5)', label: 'Frais' },
-  floral:   { primary: '#E8A0BF', glow: 'rgba(232,160,191,0.5)', label: 'Floral' },
-  boisé:    { primary: '#8B6F47', glow: 'rgba(139,111,71,0.5)',  label: 'Boisé' },
-  gourmand: { primary: '#C4956A', glow: 'rgba(196,149,106,0.5)', label: 'Gourmand' },
-  oriental: { primary: '#A0153E', glow: 'rgba(160,21,62,0.5)',   label: 'Oriental' },
-  épicé:    { primary: '#D4A017', glow: 'rgba(212,160,23,0.5)',  label: 'Épicé' },
-  cuiré:    { primary: '#4A3728', glow: 'rgba(74,55,40,0.6)',    label: 'Cuiré' },
+const FAMILY_LABELS: Record<OlfactoryFamily, string> = {
+  boisé: 'Boisé',
+  frais: 'Frais',
+  épicé: 'Épicé',
+  gourmand: 'Gourmand',
+  floral: 'Floral',
+  oriental: 'Oriental',
+  cuiré: 'Cuiré',
+};
+
+const AURA_COLORS: Record<AuraTone, { core: string; halo: string }> = {
+  gold: { core: 'rgba(212,175,55,0.58)', halo: 'rgba(212,175,55,0.24)' },
+  fresh: { core: 'rgba(155,215,242,0.58)', halo: 'rgba(155,215,242,0.24)' },
+  floral: { core: 'rgba(228,160,205,0.56)', halo: 'rgba(228,160,205,0.24)' },
+  amber: { core: 'rgba(181,110,45,0.62)', halo: 'rgba(181,110,45,0.25)' },
+  leather: { core: 'rgba(92,66,50,0.62)', halo: 'rgba(92,66,50,0.22)' },
+  spicy: { core: 'rgba(177,74,44,0.62)', halo: 'rgba(177,74,44,0.24)' },
+  woody: { core: 'rgba(107,88,69,0.62)', halo: 'rgba(107,88,69,0.24)' },
 };
 
 const QUESTIONS: QuizQuestion[] = [
   {
-    step: 'q1',
-    moment: 'Le Matin',
-    title: 'Comment commence votre journée idéale ?',
-    subtitle: 'Choisissez l\'instant qui vous ressemble',
-    answers: [
-      { label: 'Une séance de sport énergisante', family: 'frais', emoji: '🏃' },
-      { label: 'Un café en terrasse ensoleillée', family: 'floral', emoji: '☀️' },
-      { label: 'Une réunion où j\'affirme mon style', family: 'boisé', emoji: '💼' },
+    id: 'context',
+    title: "Le Contexte · L'Intention",
+    subtitle: 'Dans quelle situation votre parfum doit-il rayonner ?',
+    options: [
+      { id: 'date', title: 'Rendez-vous galant', description: 'Sillage sensuel, tension douce, proximité.', auraTone: 'floral' },
+      { id: 'board', title: 'Réunion de direction', description: 'Présence nette, crédibilité, impact.', auraTone: 'woody' },
+      { id: 'sea_trip', title: 'Escapade en bord de mer', description: 'Air salin, liberté, lumière.', auraTone: 'fresh' },
+      { id: 'gala', title: 'Soirée d’apparat (Gala)', description: 'Élégance dramatique, aura magistrale.', auraTone: 'amber' },
+      { id: 'comfort', title: 'Moment de réconfort chez soi', description: 'Confort chaud, intimité, douceur.', auraTone: 'gold' },
     ],
   },
   {
-    step: 'q2',
-    moment: 'L\'Après-midi',
-    title: 'Quel moment de détente recherchez-vous ?',
-    subtitle: 'Laissez-vous guider par vos envies',
-    answers: [
-      { label: 'Une lecture calme dans un fauteuil en cuir', family: 'cuiré', emoji: '📖' },
-      { label: 'Un goûter gourmand entre amis', family: 'gourmand', emoji: '🍰' },
-      { label: 'Une promenade en forêt pour déconnecter', family: 'boisé', emoji: '🌲' },
+    id: 'opening',
+    title: 'L’Ouverture · Notes de Tête',
+    subtitle: 'Quelle sensation initie votre signature ?',
+    options: [
+      { id: 'citrus', title: 'Zestes d’agrumes pressés', description: 'Éclat vif, énergie propre.', auraTone: 'fresh' },
+      { id: 'dew', title: 'Rosée du matin & herbe coupée', description: 'Fraîcheur verte, texture botanique.', auraTone: 'fresh' },
+      { id: 'marine', title: 'Air marin iodé', description: 'Transparence minérale et saline.', auraTone: 'fresh' },
+      { id: 'juicy_fruit', title: 'Fruits juteux & sucrés', description: 'Pulpe lumineuse, gourmandise chic.', auraTone: 'gold' },
     ],
   },
   {
-    step: 'q3',
-    moment: 'La Soirée',
-    title: 'Quelle ambiance pour votre sortie ce soir ?',
-    subtitle: 'Le final de votre journée parfaite',
-    answers: [
-      { label: 'Un dîner aux chandelles intime', family: 'oriental', emoji: '🕯️' },
-      { label: 'Une soirée chic et audacieuse', family: 'épicé', emoji: '✨' },
-      { label: 'Un événement mondain tout en finesse', family: 'floral', emoji: '🥂' },
+    id: 'heart',
+    title: 'Le Cœur · Caractère',
+    subtitle: 'Quelle matière signe votre personnalité ?',
+    options: [
+      { id: 'white_flowers', title: 'Bouquet de fleurs blanches', description: 'Jasmin, tubéreuse, opulence.', auraTone: 'floral' },
+      { id: 'mystic_rose', title: 'Rose mystique veloutée', description: 'Rose profonde, addictive.', auraTone: 'floral' },
+      { id: 'cool_spices', title: 'Épices froides', description: 'Cardamome, baies roses, tranchant.', auraTone: 'spicy' },
+      { id: 'wild_aromatics', title: 'Aromates sauvages', description: 'Lavande, sauge, énergie verte.', auraTone: 'woody' },
+    ],
+  },
+  {
+    id: 'depth',
+    title: 'La Profondeur · Notes de Fond',
+    subtitle: 'Quel sillage laisse votre empreinte ?',
+    options: [
+      { id: 'precious_woods', title: 'Bois précieux', description: 'Santal, cèdre, noblesse sèche.', auraTone: 'woody' },
+      { id: 'warm_amber', title: 'Ambre chaud & résines', description: 'Chaleur dense, profondeur noble.', auraTone: 'amber' },
+      { id: 'smoked_leather', title: 'Cuir tanné & fumé', description: 'Texture sombre, chic absolu.', auraTone: 'leather' },
+      { id: 'white_musks', title: 'Muscs blancs cotonneux', description: 'Seconde peau, douceur lumineuse.', auraTone: 'gold' },
+    ],
+  },
+  {
+    id: 'temperament',
+    title: 'Le Tempérament · Intensité',
+    subtitle: 'Quel niveau de projection recherchez-vous ?',
+    options: [
+      { id: 'soft_trail', title: 'Un murmure discret', description: 'Intime, élégant, peau à peau.', auraTone: 'fresh' },
+      { id: 'elegant_presence', title: 'Une présence élégante', description: 'Impact maîtrisé, allure nette.', auraTone: 'gold' },
+      { id: 'bold_signature', title: 'Une signature inoubliable', description: 'Puissance assumée, trace longue.', auraTone: 'amber' },
+    ],
+  },
+  {
+    id: 'style',
+    title: 'L’Esprit · Style',
+    subtitle: 'Quelle allure raconte le mieux votre identité ?',
+    options: [
+      { id: 'classic', title: 'Intemporel & Classique', description: 'Structure pure, élégance durable.', auraTone: 'woody' },
+      { id: 'modern_bold', title: 'Moderne & Audacieux', description: 'Contrastes marqués, effet couture.', auraTone: 'spicy' },
+      { id: 'bohemian', title: 'Bohème & Naturel', description: 'Organique, libre, sensuel.', auraTone: 'floral' },
     ],
   },
 ];
 
+const SCORE_RULES: Record<string, Partial<Record<OlfactoryFamily, number>>> = {
+  date: { oriental: 3, cuiré: 2, épicé: 1 },
+  board: { boisé: 3, épicé: 2, cuiré: 1 },
+  sea_trip: { frais: 4, floral: 1 },
+  gala: { oriental: 3, épicé: 2, cuiré: 1 },
+  comfort: { gourmand: 3, boisé: 1, floral: 1 },
+
+  citrus: { frais: 4, floral: 1 },
+  dew: { frais: 3, floral: 2 },
+  marine: { frais: 4, boisé: 1 },
+  juicy_fruit: { gourmand: 4, floral: 1 },
+
+  white_flowers: { floral: 4, oriental: 1 },
+  mystic_rose: { floral: 3, oriental: 2 },
+  cool_spices: { épicé: 4, boisé: 1 },
+  wild_aromatics: { frais: 2, boisé: 2, épicé: 1 },
+
+  precious_woods: { boisé: 4, épicé: 1 },
+  warm_amber: { oriental: 4, gourmand: 1 },
+  smoked_leather: { cuiré: 4, boisé: 2, épicé: 1 },
+  white_musks: { floral: 2, frais: 2, oriental: 1 },
+
+  soft_trail: { frais: 2, floral: 2, boisé: 1 },
+  elegant_presence: { boisé: 2, floral: 1, oriental: 1, épicé: 1 },
+  bold_signature: { oriental: 3, cuiré: 2, épicé: 2 },
+
+  classic: { boisé: 2, floral: 2, oriental: 1 },
+  modern_bold: { épicé: 2, cuiré: 2, oriental: 2 },
+  bohemian: { frais: 2, floral: 2, gourmand: 1, boisé: 1 },
+};
+
+const FAMILY_SYNONYMS: Record<OlfactoryFamily, string[]> = {
+  boisé: ['boise', 'boisé', 'woody'],
+  frais: ['frais', 'fresh', 'aquatique', 'frais/aquatique'],
+  épicé: ['epice', 'épicé', 'spicy'],
+  gourmand: ['gourmand'],
+  floral: ['floral', 'fleur'],
+  oriental: ['oriental', 'ambre', 'amber'],
+  cuiré: ['cuire', 'cuiré', 'leather'],
+};
+
 // ============================================================================
-// AURA BLOB COMPONENT
+// HELPERS
 // ============================================================================
 
-function AuraBlob({ families, step }: { families: OlfactoryFamily[]; step: QuizStep }) {
-  // Calculate blended color from selected families
-  const hexToRgb = (hex: string) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return { r, g, b };
+function normalizeText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function createEmptyScores(): Record<OlfactoryFamily, number> {
+  return {
+    boisé: 0,
+    frais: 0,
+    épicé: 0,
+    gourmand: 0,
+    floral: 0,
+    oriental: 0,
+    cuiré: 0,
   };
+}
 
-  const blendedColor = useMemo(() => {
-    if (families.length === 0) return { r: 212, g: 175, b: 55 }; // Gold default
-    const colors = families.map(f => hexToRgb(FAMILY_COLORS[f].primary));
-    const avg = {
-      r: Math.round(colors.reduce((s, c) => s + c.r, 0) / colors.length),
-      g: Math.round(colors.reduce((s, c) => s + c.g, 0) / colors.length),
-      b: Math.round(colors.reduce((s, c) => s + c.b, 0) / colors.length),
-    };
-    return avg;
-  }, [families]);
+function calculateResults(answers: AnswerSelection[]) {
+  const scores = createEmptyScores();
 
-  const color = `rgb(${blendedColor.r},${blendedColor.g},${blendedColor.b})`;
-  const glow = `rgba(${blendedColor.r},${blendedColor.g},${blendedColor.b},0.4)`;
+  answers.forEach((answer) => {
+    const rule = SCORE_RULES[answer.option.id];
+    if (!rule) return;
 
-  const isReveal = step === 'reveal';
+    (Object.keys(rule) as OlfactoryFamily[]).forEach((familyKey) => {
+      scores[familyKey] += rule[familyKey] ?? 0;
+    });
+  });
+
+  const sortedFamilies = (Object.keys(scores) as OlfactoryFamily[])
+    .map((family) => ({ family, value: scores[family] }))
+    .sort((a, b) => b.value - a.value);
+
+  const dominantFamily = sortedFamilies[0]?.family ?? 'boisé';
+
+  return {
+    scores,
+    dominantFamily,
+    sortedFamilies,
+  };
+}
+
+function AuraBlob({ tone }: { tone: AuraTone }) {
+  const aura = AURA_COLORS[tone];
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
-      {/* Outer glow */}
+    <div className="relative mx-auto h-40 w-40 sm:h-48 sm:w-48 md:h-56 md:w-56">
       <motion.div
-        className="absolute rounded-full"
+        className="absolute inset-0 rounded-full"
         animate={{
-          scale: isReveal ? [1, 2.5, 0] : [1, 1.15, 1],
-          opacity: isReveal ? [0.6, 0.8, 0] : [0.3, 0.5, 0.3],
-          background: `radial-gradient(circle, ${glow}, transparent)`,
+          opacity: [0.25, 0.45, 0.25],
+          scale: [1, 1.1, 1],
+          background: [`radial-gradient(circle, ${aura.halo}, transparent 70%)`],
         }}
-        transition={{
-          duration: isReveal ? 1.2 : 3,
-          repeat: isReveal ? 0 : Infinity,
-          ease: 'easeInOut',
-        }}
-        style={{ width: '100%', height: '100%' }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ filter: 'blur(8px)', willChange: 'transform, opacity' }}
       />
 
-      {/* Main blob */}
       <motion.div
-        className="absolute"
-        animate={isReveal ? {
-          scale: [1, 1.8, 0],
-          opacity: [1, 0.8, 0],
-          borderRadius: ['40% 60% 55% 45% / 55% 45% 60% 40%', '50%', '50%'],
-        } : {
+        className="absolute inset-[14%]"
+        animate={{
           borderRadius: [
-            '40% 60% 55% 45% / 55% 45% 60% 40%',
-            '55% 45% 40% 60% / 45% 60% 55% 40%',
-            '45% 55% 60% 40% / 60% 40% 45% 55%',
-            '40% 60% 55% 45% / 55% 45% 60% 40%',
+            '44% 56% 62% 38% / 38% 45% 55% 62%',
+            '52% 48% 36% 64% / 62% 44% 56% 38%',
+            '40% 60% 56% 44% / 40% 60% 40% 60%',
+            '44% 56% 62% 38% / 38% 45% 55% 62%',
           ],
-          scale: [1, 1.05, 0.97, 1],
+          scale: [1, 1.04, 0.97, 1],
+          background: [
+            `radial-gradient(circle at 32% 35%, rgba(255,255,255,0.35), ${aura.core})`,
+            `radial-gradient(circle at 62% 48%, rgba(255,255,255,0.28), ${aura.core})`,
+            `radial-gradient(circle at 45% 30%, rgba(255,255,255,0.33), ${aura.core})`,
+          ],
         }}
-        transition={{
-          duration: isReveal ? 1.2 : 6,
-          repeat: isReveal ? 0 : Infinity,
-          ease: 'easeInOut',
-        }}
+        transition={{ duration: 6.8, repeat: Infinity, ease: 'easeInOut' }}
         style={{
-          width: '70%',
-          height: '70%',
-          background: `radial-gradient(circle at 35% 35%, ${color}, ${glow})`,
-          boxShadow: `0 0 60px ${glow}, 0 0 120px ${glow}`,
-          willChange: 'transform, border-radius',
+          boxShadow: '0 0 38px rgba(212,175,55,0.22)',
+          willChange: 'transform, border-radius, background',
         }}
       />
-
-      {/* Inner shimmer */}
-      <motion.div
-        className="absolute rounded-full"
-        animate={isReveal ? { opacity: 0, scale: 0 } : {
-          opacity: [0.2, 0.5, 0.2],
-          scale: [0.3, 0.45, 0.3],
-        }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        style={{
-          width: '50%',
-          height: '50%',
-          background: `radial-gradient(circle, rgba(255,255,255,0.4), transparent)`,
-          willChange: 'transform, opacity',
-        }}
-      />
-
-      {/* Reveal particles */}
-      <AnimatePresence>
-        {isReveal && Array.from({ length: 12 }).map((_, i) => {
-          const angle = (i / 12) * Math.PI * 2;
-          const dist = 100 + Math.random() * 60;
-          return (
-            <motion.div
-              key={`p-${i}`}
-              className="absolute rounded-full"
-              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-              animate={{
-                x: Math.cos(angle) * dist,
-                y: Math.sin(angle) * dist,
-                opacity: 0,
-                scale: 0,
-              }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 + Math.random() * 0.4, ease: 'easeOut', delay: 0.3 }}
-              style={{
-                width: 4 + Math.random() * 6,
-                height: 4 + Math.random() * 6,
-                background: `linear-gradient(135deg, #D4AF37, ${color})`,
-                willChange: 'transform, opacity',
-              }}
-            />
-          );
-        })}
-      </AnimatePresence>
     </div>
   );
 }
 
-// ============================================================================
-// PARTICLE BURST (Gold particles on reveal)
-// ============================================================================
-
-function ParticleBurst({ active }: { active: boolean }) {
-  if (!active) return null;
+function GoldenSwirl() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {Array.from({ length: 20 }).map((_, i) => {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 80 + Math.random() * 200;
-        const size = 2 + Math.random() * 4;
+    <div className="relative mx-auto h-48 w-48 sm:h-56 sm:w-56">
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+        style={{
+          border: '1px solid rgba(212,175,55,0.25)',
+          borderTopColor: 'rgba(212,175,55,0.9)',
+          willChange: 'transform',
+        }}
+      />
+      <motion.div
+        className="absolute inset-[18%] rounded-full"
+        animate={{ rotate: -360 }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: 'linear' }}
+        style={{
+          border: '1px solid rgba(212,175,55,0.16)',
+          borderTopColor: 'rgba(212,175,55,0.75)',
+          willChange: 'transform',
+        }}
+      />
+
+      {Array.from({ length: 16 }).map((_, index) => {
+        const angle = (index / 16) * Math.PI * 2;
+        const distance = 72 + ((index % 4) * 8);
         return (
           <motion.div
-            key={i}
-            className="absolute left-1/2 top-1/2 rounded-full"
-            initial={{ x: 0, y: 0, opacity: 1 }}
+            key={index}
+            className="absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
             animate={{
-              x: Math.cos(angle) * dist,
-              y: Math.sin(angle) * dist,
-              opacity: 0,
+              x: [Math.cos(angle) * (distance - 10), Math.cos(angle) * (distance + 14)],
+              y: [Math.sin(angle) * (distance - 10), Math.sin(angle) * (distance + 14)],
+              opacity: [0.25, 0.9, 0.25],
+              scale: [0.8, 1.2, 0.8],
             }}
-            transition={{ duration: 1 + Math.random() * 0.5, ease: 'easeOut', delay: Math.random() * 0.3 }}
+            transition={{ duration: 2 + (index % 4) * 0.25, repeat: Infinity, ease: 'easeInOut' }}
             style={{
-              width: size,
-              height: size,
               background: '#D4AF37',
-              boxShadow: '0 0 6px rgba(212,175,55,0.6)',
+              boxShadow: '0 0 10px rgba(212,175,55,0.6)',
               willChange: 'transform, opacity',
             }}
           />
@@ -239,415 +322,403 @@ function ParticleBurst({ active }: { active: boolean }) {
 }
 
 // ============================================================================
-// MAIN QUIZ COMPONENT
+// COMPONENT
 // ============================================================================
 
 export default function SillageQuiz() {
-  const { products } = useAdminStore();
+  const products = useAdminStore((state) => state.products);
+  const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { toast } = useToast();
 
-  const [step, setStep] = useState<QuizStep>('intro');
-  const [answers, setAnswers] = useState<OlfactoryFamily[]>([]);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [started, setStarted] = useState(false);
+  const [phase, setPhase] = useState<'quiz' | 'alchemy' | 'result'>('quiz');
+  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState<AnswerSelection[]>([]);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [auraTone, setAuraTone] = useState<AuraTone>('gold');
 
-  // Determine dominant family from answers
-  const dominantFamily = useMemo((): OlfactoryFamily => {
-    if (answers.length === 0) return 'boisé';
-    const counts: Record<string, number> = {};
-    answers.forEach(f => { counts[f] = (counts[f] || 0) + 1; });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0] as OlfactoryFamily;
+  const question = QUESTIONS[stepIndex];
+  const totalSteps = QUESTIONS.length;
+
+  const resultData = useMemo(() => calculateResults(answers), [answers]);
+
+  const topFamilies = useMemo<FamilyScore[]>(() => {
+    const total = resultData.sortedFamilies.reduce((sum, item) => sum + item.value, 0) || 1;
+
+    return resultData.sortedFamilies.slice(0, 3).map((item) => ({
+      family: item.family,
+      label: FAMILY_LABELS[item.family],
+      value: item.value,
+      percentage: Math.round((item.value / total) * 100),
+    }));
+  }, [resultData]);
+
+  const selectedSituation = useMemo(() => {
+    const contextAnswer = answers.find((item) => item.questionId === 'context');
+    return contextAnswer?.option.title ?? 'style personnel';
   }, [answers]);
 
-  // Find recommended products from Supabase/store
-  const recommendedProducts = useMemo(() => {
-    if (answers.length < 3) return [];
+  const recommendedProducts = useMemo<ProductRecommendation[]>(() => {
+    const inStock = products.filter((product) => product.stock > 0);
+    if (inStock.length === 0) return [];
 
-    // Score each product based on family match
-    const scored = products
-      .filter(p => p.stock > 0)
-      .map(p => {
-        let score = 0;
-        const fam = (p.families || []).map(f => f.toLowerCase());
-        const scent = (p.scent || '').toLowerCase();
-        const cat = (p.category || '').toLowerCase();
-        const allText = [...fam, scent, cat].join(' ');
+    const topFamilyIds = topFamilies.map((family) => family.family);
 
-        // Primary: match dominant family
-        if (allText.includes(dominantFamily)) score += 10;
+    const scored = inStock
+      .map((product) => {
+        const normalizedFamilies = (product.families || []).map((family) => normalizeText(String(family)));
+        const searchBlob = `${normalizedFamilies.join(' ')} ${normalizeText(product.scent || '')} ${normalizeText(product.category || '')}`;
 
-        // Secondary: match other chosen families
-        answers.forEach(a => {
-          if (allText.includes(a)) score += 3;
+        let matchScore = 0;
+
+        topFamilyIds.forEach((family, index) => {
+          const aliases = FAMILY_SYNONYMS[family];
+          if (aliases.some((alias) => searchBlob.includes(normalizeText(alias)))) {
+            matchScore += index === 0 ? 10 : index === 1 ? 6 : 4;
+          }
         });
 
-        // Bonus for having notes
-        if (p.notes_tete?.length || p.notes_coeur?.length || p.notes_fond?.length) score += 1;
+        if (product.notes_tete?.length || product.notes_coeur?.length || product.notes_fond?.length) {
+          matchScore += 1;
+        }
 
-        return { product: p, score };
+        return {
+          id: product.id,
+          name: product.name,
+          brand: product.brand,
+          price: product.price,
+          image: product.image || product.image_url,
+          matchScore,
+        };
       })
-      .filter(s => s.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .map(s => s.product);
+      .filter((product) => product.matchScore > 0)
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 3);
 
-    // Fallback: if no good match, pick top 3 by stock
-    if (scored.length === 0) {
-      return products.filter(p => p.stock > 0).slice(0, 3);
-    }
-    return scored;
-  }, [answers, products, dominantFamily]);
+    if (scored.length > 0) return scored;
 
-  const currentQuestion = useMemo(() => {
-    if (step === 'q1') return QUESTIONS[0];
-    if (step === 'q2') return QUESTIONS[1];
-    if (step === 'q3') return QUESTIONS[2];
-    return null;
-  }, [step]);
+    return inStock.slice(0, 3).map((fallback, index) => ({
+      id: fallback.id,
+      name: fallback.name,
+      brand: fallback.brand,
+      price: fallback.price,
+      image: fallback.image || fallback.image_url,
+      matchScore: 3 - index,
+    }));
+  }, [products, topFamilies]);
 
-  const handleAnswer = useCallback((family: OlfactoryFamily, index: number) => {
-    setSelectedAnswer(index);
-    setTimeout(() => {
-      setAnswers(prev => [...prev, family]);
-      setSelectedAnswer(null);
-      if (step === 'q1') setStep('q2');
-      else if (step === 'q2') setStep('q3');
-      else if (step === 'q3') {
-        setStep('reveal');
-        setTimeout(() => setStep('result'), 1800);
-      }
-    }, 500);
-  }, [step]);
-
-  const handleReset = useCallback(() => {
-    setStep('intro');
+  const handleRestart = useCallback(() => {
+    setStarted(false);
+    setPhase('quiz');
+    setStepIndex(0);
     setAnswers([]);
-    setSelectedAnswer(null);
+    setSelectedOption(null);
+    setAuraTone('gold');
   }, []);
 
-  const handleAddToCart = useCallback((product: any) => {
-    addToCart({
-      id: product.id,
-      productId: product.id,
-      name: product.name,
-      brand: product.brand,
-      price: product.price,
-      image: product.image || product.image_url,
-      scent: product.scent,
-      category: product.category,
-    } as any);
-    toast({
-      title: '🛒 Ajouté au panier',
-      description: `${product.name} a été ajouté à votre panier`,
-    });
-  }, [addToCart, toast]);
+  const handleAnswer = useCallback(
+    (option: QuizOption, index: number) => {
+      if (selectedOption !== null || !question) return;
 
-  const familyInfo = FAMILY_COLORS[dominantFamily];
-  const stepProgress = step === 'q1' ? 1 : step === 'q2' ? 2 : step === 'q3' ? 3 : 3;
+      setSelectedOption(index);
+      setAuraTone(option.auraTone);
 
-  // ============================================================================
-  // RENDER
-  // ============================================================================
+      const currentQuestionId = question.id;
+
+      setTimeout(() => {
+        setAnswers((prev) => [...prev, { questionId: currentQuestionId, option }]);
+        setSelectedOption(null);
+
+        if (stepIndex < totalSteps - 1) {
+          setStepIndex((prev) => prev + 1);
+          return;
+        }
+
+        setPhase('alchemy');
+        setTimeout(() => {
+          setPhase('result');
+          setStepIndex(totalSteps);
+        }, 1900);
+      }, 260);
+    },
+    [question, selectedOption, stepIndex, totalSteps],
+  );
 
   return (
-    <section className="relative py-16 md:py-24 overflow-hidden bg-background">
-      {/* Subtle background gradient */}
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse at 50% 30%, ${familyInfo.primary}, transparent 70%)`,
-        }}
-      />
+    <section className="relative overflow-hidden bg-background py-12 sm:py-14 md:py-20">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_50%_15%,rgba(212,175,55,0.28),transparent_62%)]" />
 
-      <div className="container mx-auto px-4 relative z-10">
-        {/* ================================================================ */}
-        {/* INTRO                                                            */}
-        {/* ================================================================ */}
+      <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-12 lg:px-20">
         <AnimatePresence mode="wait">
-          {step === 'intro' && (
+          {!started && (
             <motion.div
               key="intro"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5 }}
-              className="text-center max-w-2xl mx-auto"
+              transition={{ duration: 0.45 }}
+              className="mx-auto max-w-2xl text-center"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D4AF37]/10 text-foreground text-xs font-medium mb-6 uppercase tracking-[0.2em]">
-                <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-                Quiz Olfactif
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-admin-gold/20 bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-admin-gold">
+                <Sparkles className="h-4 w-4" />
+                Diagnostic Olfactif Haute Couture
               </div>
 
-              <h2 className="font-serif text-3xl md:text-5xl font-normal mb-4 leading-tight">
-                Votre Instant,<br />Votre Sillage
+              <h2 className="font-serif text-3xl leading-tight text-foreground sm:text-4xl md:text-5xl">
+                Une expérience immersive,
+                <br />
+                pensée comme un rituel.
               </h2>
-              <p className="text-sm md:text-base text-foreground/60 mb-8 max-w-md mx-auto leading-relaxed" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>
-                3 moments de votre journée. 1 signature olfactive unique.
-                Laissez vos instants révéler votre parfum idéal.
+
+              <p className="mx-auto mt-4 max-w-xl font-montserrat text-sm font-light leading-relaxed text-muted-foreground sm:text-base">
+                Votre profil est calculé sur 7 familles olfactives puis relié à des parfums réels disponibles en stock.
               </p>
 
-              {/* Aura preview */}
-              <div className="flex justify-center mb-8">
-                <AuraBlob families={[]} step="intro" />
+              <div className="mt-8 flex justify-center">
+                <AuraBlob tone={auraTone} />
               </div>
 
               <motion.button
-                onClick={() => setStep('q1')}
-                whileTap={{ scale: 0.97 }}
-                className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl
-                  bg-foreground/5 backdrop-blur border border-foreground/10
-                  hover:border-[#D4AF37]/40 hover:bg-[#D4AF37]/5
-                  active:bg-[#D4AF37]/10
-                  transition-all duration-300 text-foreground"
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setStarted(true)}
+                className="mt-8 min-h-12 rounded-xl border-[0.5px] border-admin-gold/20 bg-white/5 px-7 py-3 font-montserrat text-xs uppercase tracking-[0.2em] text-admin-gold backdrop-blur-lg transition-all duration-500 ease-in-out hover:border-admin-gold hover:bg-white/10"
               >
-                <span className="font-serif text-base tracking-wider uppercase">Commencer</span>
-                <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                Lancer le diagnostic
               </motion.button>
             </motion.div>
           )}
 
-          {/* ================================================================ */}
-          {/* QUESTIONS                                                       */}
-          {/* ================================================================ */}
-          {currentQuestion && (
+          {started && phase === 'quiz' && question && (
             <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.4 }}
-              className="max-w-xl mx-auto"
+              key={question.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.45, ease: 'easeInOut' }}
+              className="mx-auto max-w-3xl"
             >
-              {/* Progress */}
-              <div className="flex items-center gap-3 mb-8 justify-center">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className={`h-1.5 rounded-full transition-all duration-500 ${
-                      i <= stepProgress ? 'w-10 bg-[#D4AF37]' : 'w-6 bg-foreground/10'
-                    }`} />
-                  </div>
-                ))}
-                <span className="text-xs text-muted-foreground ml-2">{stepProgress}/3</span>
+              <div className="mb-6 flex items-center justify-between gap-3">
+                <span className="font-montserrat text-[11px] font-light uppercase tracking-[0.18em] text-muted-foreground">
+                  Étape {stepIndex + 1} / {totalSteps}
+                </span>
+                <div className="h-1.5 w-40 overflow-hidden rounded-full bg-foreground/10 sm:w-56">
+                  <motion.div
+                    className="h-full rounded-full bg-admin-gold"
+                    initial={false}
+                    animate={{ width: `${((stepIndex + 1) / totalSteps) * 100}%` }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                  />
+                </div>
               </div>
 
-              {/* Aura + Question */}
-              <div className="text-center mb-8">
-                <div className="flex justify-center mb-6">
-                  <AuraBlob families={answers} step={step} />
-                </div>
-
-                <div className="inline-block px-3 py-1 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] text-xs font-medium uppercase tracking-wider mb-3">
-                  {currentQuestion.moment}
-                </div>
-                <h3 className="font-serif text-2xl md:text-3xl mb-2">
-                  {currentQuestion.title}
-                </h3>
-                <p className="text-sm text-foreground/50" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>
-                  {currentQuestion.subtitle}
+              <div className="mb-8 text-center">
+                <AuraBlob tone={auraTone} />
+                <h3 className="mt-6 font-serif text-2xl text-foreground sm:text-3xl">{question.title}</h3>
+                <p className="mx-auto mt-2 max-w-xl font-montserrat text-sm font-light text-muted-foreground sm:text-base">
+                  {question.subtitle}
                 </p>
               </div>
 
-              {/* Answer cards */}
-              <div className="space-y-3">
-                {currentQuestion.answers.map((answer, i) => {
-                  const isSelected = selectedAnswer === i;
-                  const familyColor = FAMILY_COLORS[answer.family];
+              <motion.div
+                className="grid grid-cols-1 gap-3 sm:gap-4"
+                variants={{ show: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
+                initial="hidden"
+                animate="show"
+              >
+                {question.options.map((option, index) => {
+                  const isActive = selectedOption === index;
+
                   return (
                     <motion.button
-                      key={answer.label}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleAnswer(answer.family, i)}
-                      disabled={selectedAnswer !== null}
-                      className={`
-                        w-full text-left p-5 rounded-xl border backdrop-blur-sm
-                        transition-all duration-300 min-h-[64px]
-                        ${isSelected
-                          ? 'border-[#D4AF37]/60 bg-[#D4AF37]/10 scale-[1.01]'
-                          : 'border-foreground/8 bg-foreground/[0.02] hover:border-foreground/15 hover:bg-foreground/[0.04] active:bg-foreground/[0.06]'
-                        }
-                        disabled:pointer-events-none
-                      `}
+                      key={option.id}
+                      variants={{
+                        hidden: { opacity: 0, y: 12, filter: 'blur(8px)' },
+                        show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'easeOut' } },
+                      }}
+                      whileHover={
+                        selectedOption === null
+                          ? {
+                              borderColor: 'rgba(212,175,55,0.5)',
+                              boxShadow: '0 0 20px rgba(212,175,55,0.2), inset 0 1px 1px rgba(255,255,255,0.06)',
+                            }
+                          : undefined
+                      }
+                      whileTap={selectedOption === null ? { scale: 0.95 } : undefined}
+                      disabled={selectedOption !== null}
+                      onClick={() => handleAnswer(option, index)}
+                      className={`relative w-full overflow-hidden rounded-2xl border-[0.5px] p-4 text-left backdrop-blur-xl transition-all duration-300 ease-in-out sm:p-5 min-h-[100px] sm:min-h-[88px] active:scale-95 ${
+                        isActive
+                          ? 'border-admin-gold bg-white/10 scale-[0.98]'
+                          : 'border-white/10 bg-white/5'
+                      }`}
+                      style={{
+                        willChange: 'transform, box-shadow, filter',
+                        boxShadow: isActive
+                          ? '0 0 24px rgba(212,175,55,0.28), inset 0 1px 1px rgba(255,255,255,0.06)'
+                          : 'inset 0 1px 1px rgba(255,255,255,0.06)',
+                      }}
                     >
-                      <div className="flex items-center gap-4">
-                        <span className="text-2xl flex-shrink-0" role="img">{answer.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm md:text-base font-medium" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>
-                            {answer.label}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="w-5 h-5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: familyColor.primary }}
-                          />
-                        )}
-                      </div>
+                      {/* Radial gold glow on selection */}
+                      <motion.span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute -inset-10 rounded-full"
+                        initial={{ opacity: 0, scale: 0.7 }}
+                        animate={{ opacity: isActive ? 0.32 : 0, scale: isActive ? 1 : 0.8 }}
+                        transition={{ duration: 0.55, ease: 'easeOut' }}
+                        style={{
+                          background: 'radial-gradient(circle, rgba(212,175,55,0.35), transparent 65%)',
+                        }}
+                      />
+
+                      <p className="relative z-10 font-montserrat text-lg tracking-wide text-admin-gold sm:text-xl">{option.title}</p>
+                      <p className="relative z-10 mt-1 font-montserrat text-sm font-light tracking-wide leading-relaxed text-muted-foreground">
+                        {option.description}
+                      </p>
                     </motion.button>
                   );
                 })}
-              </div>
+              </motion.div>
             </motion.div>
           )}
 
-          {/* ================================================================ */}
-          {/* REVEAL TRANSITION                                               */}
-          {/* ================================================================ */}
-          {step === 'reveal' && (
+          {started && phase === 'alchemy' && (
             <motion.div
-              key="reveal"
+              key="alchemy"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center min-h-[400px] relative"
+              transition={{ duration: 0.45 }}
+              className="mx-auto flex min-h-[420px] max-w-3xl items-center justify-center rounded-3xl border border-admin-gold/20 bg-black px-6"
             >
-              <AuraBlob families={answers} step="reveal" />
-              <ParticleBurst active />
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="mt-8 font-serif text-lg text-foreground/60 text-center"
-              >
-                Votre sillage se dessine…
-              </motion.p>
+              <div className="text-center">
+                <GoldenSwirl />
+                <p className="mt-8 font-serif text-2xl text-admin-gold sm:text-3xl">
+                  L'alchimie opère...
+                </p>
+                <p className="mt-2 font-montserrat text-sm font-light text-white/70 sm:text-base">
+                  votre signature se dessine.
+                </p>
+              </div>
             </motion.div>
           )}
 
-          {/* ================================================================ */}
-          {/* RESULT                                                          */}
-          {/* ================================================================ */}
-          {step === 'result' && (
+          {started && phase === 'result' && (
             <motion.div
               key="result"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="max-w-3xl mx-auto"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.45, ease: 'easeInOut' }}
+              className="mx-auto max-w-5xl"
             >
-              {/* Verdict */}
-              <div className="text-center mb-10">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', delay: 0.2 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
-                  style={{ backgroundColor: `${familyInfo.primary}20`, color: familyInfo.primary }}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">{familyInfo.label}</span>
-                </motion.div>
+              <div className="text-center">
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-admin-gold/20 bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-admin-gold">
+                  <Sparkles className="h-4 w-4" />
+                  Signature Royale
+                </div>
 
-                <h3 className="font-serif text-2xl md:text-4xl mb-3">
-                  Votre Signature Olfactive
+                <h3 className="font-serif text-3xl text-foreground sm:text-4xl md:text-5xl">
+                  Votre Aura est {FAMILY_LABELS[resultData.dominantFamily]}
                 </h3>
-                <p className="text-sm text-foreground/60 max-w-md mx-auto" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>
-                  Pour vos instants {answers.length >= 1 && '—'} du matin energique à la soirée élégante {answers.length >= 1 && '—'} votre sillage idéal est <strong className="text-foreground">{familyInfo.label}</strong>.
+                <p className="mx-auto mt-3 max-w-2xl font-montserrat text-sm font-light text-muted-foreground sm:text-base">
+                  Analyse pondérée sur 7 familles olfactives, connectée à votre intention et à des parfums réellement disponibles.
                 </p>
               </div>
 
-              {/* Aura small */}
-              <div className="flex justify-center mb-8">
-                <div className="scale-75">
-                  <AuraBlob families={answers} step="result" />
-                </div>
+              <div className="mt-8 grid grid-cols-1 gap-3 sm:gap-4">
+                {topFamilies.map((family, index) => (
+                  <motion.div
+                    key={family.family}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                    className="rounded-2xl border-[0.5px] border-admin-gold/20 bg-white/5 p-4 backdrop-blur-lg"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="font-serif text-xl text-admin-gold">{family.label}</p>
+                      <p className="font-montserrat text-sm font-light text-foreground">{family.percentage}%</p>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
+                      <motion.div
+                        className="h-full rounded-full bg-admin-gold"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${family.percentage}%` }}
+                        transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
               </div>
 
-              {/* Product recommendations */}
-              {recommendedProducts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-                  {recommendedProducts.map((product, i) => (
-                    <motion.div
+              <div className="mt-10">
+                <h4 className="mb-4 text-center font-serif text-2xl text-foreground">Vos 3 parfums recommandés</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {recommendedProducts.map((product, index) => (
+                    <motion.article
                       key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + i * 0.15 }}
-                      className="relative rounded-2xl border border-foreground/8 bg-foreground/[0.02] backdrop-blur-sm overflow-hidden group"
+                      transition={{ delay: 0.15 + index * 0.12 }}
+                      className="group cursor-pointer overflow-hidden rounded-2xl border-[0.5px] border-admin-gold/20 bg-white/5 backdrop-blur-lg transition-all duration-500 hover:border-admin-gold/50 hover:shadow-[0_0_20px_rgba(212,175,55,0.15)]"
+                      onClick={() => navigate(`/product/${product.id}`)}
                     >
-                      {/* Badge #1 */}
-                      {i === 0 && (
-                        <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded-full bg-[#D4AF37]/90 text-black text-[10px] font-bold uppercase tracking-wider">
-                          Parfait pour vous
-                        </div>
-                      )}
-
-                      {/* Product image */}
-                      <div className="aspect-square bg-secondary/20 overflow-hidden">
-                        {(product.image || product.image_url) ? (
+                      <div className="relative aspect-square overflow-hidden bg-secondary/20">
+                        {product.image ? (
                           <img
-                            src={product.image || product.image_url}
+                            src={product.image}
                             alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 group-active:scale-105"
+                            className="h-full w-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-4xl">
-                            🌸
-                          </div>
+                          <div className="flex h-full w-full items-center justify-center text-admin-gold">✦</div>
                         )}
+
+                        {/* Add to Cart overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
+                          <motion.button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                id: product.id,
+                                productId: product.id,
+                                name: product.name,
+                                brand: product.brand || '',
+                                price: product.price,
+                                image: product.image || '',
+                              } as any);
+                            }}
+                            className="rounded-full border border-white/40 p-4 min-w-[48px] min-h-[48px] text-white transition-all duration-300 hover:border-admin-gold/70 hover:text-admin-gold active:scale-95"
+                            whileHover={{ scale: 1.08, y: -2 }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label="Ajouter au panier"
+                          >
+                            <ShoppingBag strokeWidth={1.5} className="h-6 w-6" />
+                          </motion.button>
+                        </div>
                       </div>
 
-                      {/* Product info */}
-                      <div className="p-4">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{product.brand}</p>
-                        <h4 className="font-serif text-base mb-1 line-clamp-1">{product.name}</h4>
-                        <p className="text-lg font-light" style={{ color: '#D4AF37' }}>
-                          {product.price.toFixed(2)} €
+                      <div className="space-y-2 p-4">
+                        <p className="font-montserrat text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{product.brand}</p>
+                        <p className="font-serif text-xl text-foreground transition-colors duration-300 group-hover:text-admin-gold">{product.name}</p>
+                        <p className="font-montserrat text-sm font-light text-admin-gold">{product.price.toFixed(2)} €</p>
+                        <p className="font-montserrat text-xs font-light text-muted-foreground">
+                          Recommandé pour votre {selectedSituation}.
                         </p>
-
-                        {/* Add to cart */}
-                        <motion.button
-                          whileTap={{ scale: 0.96 }}
-                          onClick={() => handleAddToCart(product)}
-                          className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg
-                            border border-foreground/15 hover:border-[#D4AF37]/50
-                            active:bg-[#D4AF37]/10
-                            transition-all duration-200 text-sm min-h-[48px]"
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                          <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 400 }}>Ajouter au panier</span>
-                        </motion.button>
                       </div>
-                    </motion.div>
+                    </motion.article>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  <p>Aucun parfum disponible pour le moment.</p>
-                </div>
-              )}
+              </div>
 
-              {/* Verdict phrase */}
-              {recommendedProducts.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.8 }}
-                  className="text-center mb-8 p-6 rounded-2xl border border-foreground/5 bg-foreground/[0.01]"
-                >
-                  <p className="font-serif text-lg md:text-xl text-foreground/80 italic leading-relaxed">
-                    « Pour votre journée, votre signature idéale est{' '}
-                    <span className="not-italic font-semibold text-foreground">{recommendedProducts[0]?.name}</span>. »
-                  </p>
-                </motion.div>
-              )}
-
-              {/* Restart */}
-              <div className="text-center">
+              <div className="mt-10 text-center">
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handleReset}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg
-                    text-muted-foreground hover:text-foreground
-                    active:text-foreground
-                    transition-colors text-sm min-h-[48px]"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleRestart}
+                  className="inline-flex min-h-[48px] items-center gap-2 rounded-xl border border-admin-gold/20 bg-white/5 px-5 py-3 font-montserrat text-sm font-light text-foreground backdrop-blur-md transition-all duration-300 ease-in-out hover:border-admin-gold active:scale-95"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>Recommencer le quiz</span>
+                  <RotateCcw className="h-5 w-5" />
+                  Refaire le diagnostic
                 </motion.button>
               </div>
             </motion.div>

@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingBag, Tag, Check } from 'lucide-react';
+import { X, Plus, Minus, Trash2, ShoppingBag, Tag, Check, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import type { Product } from './ProductGrid';
 import { usePromoCodesStore } from '@/store/usePromoCodesStore';
-import { useCartStore } from '@/store/useCartStore';
+import { useCartStore, type CartItem } from '@/store/useCartStore';
+import { useAuth } from '@/context/AuthContext';
 
-export interface CartItem extends Product {
-  quantity: number;
-}
+export type { CartItem };
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -22,6 +20,7 @@ const FREE_SHIPPING_THRESHOLD = 100;
 
 const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: CartDrawerProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
   const promoCodes = usePromoCodesStore((state) => state.promoCodes);
@@ -79,9 +78,17 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
   };
 
   const handleCheckout = () => {
+    if (!user) {
+      // Invité : rediriger vers login avant le paiement
+      navigate('/login');
+      onClose();
+      return;
+    }
     navigate('/checkout');
     onClose();
   };
+
+  const isGuest = !user;
 
   if (!isOpen) return null;
 
@@ -93,9 +100,18 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
         onClick={onClose}
       />
 
-      {/* Drawer - Full screen on mobile, sidebar on desktop */}
-      <div className="fixed right-0 top-0 h-full w-full md:max-w-md z-50 slide-in-right">
-        <div className="h-full glass border-l border-border/50 flex flex-col">
+      {/* Drawer - Bottom sheet on mobile, sidebar on desktop */}
+      <div className="fixed z-50
+        bottom-0 inset-x-0 max-h-[90vh] rounded-t-2xl
+        md:bottom-auto md:right-0 md:top-0 md:left-auto md:h-full md:max-h-full md:w-full md:max-w-md md:rounded-none
+        slide-in-right md:slide-in-right
+        animate-slide-up md:animate-none
+      ">
+        <div className="h-full glass border-t md:border-t-0 md:border-l border-border/50 flex flex-col max-h-[90vh] md:max-h-full md:h-full">
+          {/* Drag Handle (mobile only) */}
+          <div className="md:hidden flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-foreground/20" />
+          </div>
           {/* Header */}
           <div className="flex items-center justify-between p-4 md:p-6 border-b border-border/50 sticky top-0 z-10 bg-card/80 backdrop-blur-sm">
             <div className="flex items-center gap-2 md:gap-3 min-w-0">
@@ -107,7 +123,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
             </div>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-secondary rounded-full transition-colors"
+              className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center active:bg-secondary rounded-full transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -159,10 +175,10 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                     
                     <div className="flex items-center justify-between mt-2">
                       {/* Quantity Controls */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                          className="p-1 hover:bg-secondary rounded transition-colors"
+                          className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center active:bg-secondary rounded transition-colors"
                           disabled={item.quantity <= 1}
                         >
                           <Minus className="w-4 h-4" />
@@ -170,7 +186,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                         <span className="w-8 text-center font-medium">{item.quantity}</span>
                         <button
                           onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                          className="p-1 hover:bg-secondary rounded transition-colors"
+                          className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center active:bg-secondary rounded transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -182,7 +198,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                         </span>
                         <button
                           onClick={() => onRemoveItem(item.id)}
-                          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                          className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground active:text-destructive transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -263,9 +279,11 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                 whileTap={{ scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
-                <Check className="w-4 h-4 mr-2" />
-                <span className="hidden md:inline">Passer à la caisse</span>
-                <span className="md:hidden">Commander</span>
+                {isGuest ? (
+                  <><LogIn className="w-4 h-4 mr-2" /><span>Se connecter pour commander</span></>
+                ) : (
+                  <><Check className="w-4 h-4 mr-2" /><span className="hidden md:inline">Passer \u00e0 la caisse</span><span className="md:hidden">Commander</span></>
+                )}
               </motion.button>
               <p className="text-[10px] md:text-xs text-center text-foreground/60 uppercase tracking-widest">
                 Paiement sécurisé • Livraison 2-4 jours

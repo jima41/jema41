@@ -4,6 +4,8 @@ import { Search, ShoppingBag, Menu, X, LogOut, User, Settings, ChevronRight, Hea
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import MobileHeader from './MobileHeader';
 
 interface HeaderProps {
   cartItemsCount: number;
@@ -220,6 +222,12 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   const [scrollY, setScrollY] = useState(0);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Use MobileHeader for mobile devices
+  if (isMobile) {
+    return <MobileHeader cartItemsCount={cartItemsCount} onCartClick={onCartClick} />;
+  }
 
   // Scroll handling
   useEffect(() => {
@@ -355,13 +363,33 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                 title="Panier"
               />
 
+              {/* Mobile Auth Buttons - Adapted for mobile (kept md:hidden as originally) */}
+              <div className="md:hidden flex items-center gap-2">
+                {!user && (
+                  <>
+                    <Link to="/login">
+                      <button className="px-4 py-2.5 text-sm font-medium text-[#A68A56] border border-[#D4AF37]/40 rounded-lg active:scale-95 transition-all bg-white/80 backdrop-blur-sm">
+                        Connexion
+                      </button>
+                    </Link>
+                    <Link to="/signup">
+                      <button className="px-4 py-2.5 text-sm font-medium text-white bg-[#D4AF37] hover:bg-[#B8952A] active:scale-95 transition-all rounded-lg shadow-sm">
+                        S'inscrire
+                      </button>
+                    </Link>
+                  </>
+                )}
+              </div>
+
               {/* Admin */}
               {user?.role === 'admin' && (
-                <ActionIcon
-                  icon={<Settings strokeWidth={1.5} className="w-5 h-5" />}
-                  onClick={() => navigate('/admin')}
-                  title="Panneau d'Administration"
-                />
+                <div className="hidden md:block">
+                  <ActionIcon
+                    icon={<Settings strokeWidth={1.5} className="w-5 h-5" />}
+                    onClick={() => navigate('/admin')}
+                    title="Panneau d'Administration"
+                  />
+                </div>
               )}
 
               {/* User/Auth Actions */}
@@ -462,36 +490,6 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                   Nos Parfums
                 </button>
               </div>
-
-              {user?.role === 'admin' && (
-                <a
-                  href="/admin"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate('/admin');
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-sm font-medium text-[#D4AF37] py-2"
-                >
-                  Administration
-                </a>
-              )}
-
-              {/* Mobile Auth */}
-              {!user && (
-                <div className="flex flex-col gap-3 pt-4 border-t border-border/20">
-                  <Link to="/login">
-                    <button className="w-full text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
-                      Connexion
-                    </button>
-                  </Link>
-                  <Link to="/signup">
-                    <button className="w-full text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
-                      Inscription
-                    </button>
-                  </Link>
-                </div>
-              )}
             </nav>
           </motion.div>
         )}

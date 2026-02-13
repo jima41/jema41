@@ -7,6 +7,7 @@ import {
   updateProduct as supabaseUpdate,
   deleteProduct as supabaseDelete,
   subscribeToProducts,
+  batchUpdateFeatured,
   SupabaseError,
   type ProductRow,
 } from '@/integrations/supabase/supabase';
@@ -81,6 +82,8 @@ export interface Product {
   volume?: string;
   stock: number;
   monthlySales: number;
+  is_featured?: boolean;
+  featured_order?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -144,12 +147,13 @@ interface AdminStoreState {
   teardownRealtimeSync: () => void;
 
   // Featured Products Management (Notre Sélection)
-  setFeaturedProducts: (productIds: string[]) => void;
+  setFeaturedProducts: (productIds: string[]) => Promise<void>;
   getFeaturedProducts: () => Product[];
   addFeaturedProduct: (productId: string) => void;
   removeFeaturedProduct: (productId: string) => void;
   reorderFeaturedProducts: (productIds: string[]) => void;
   validateFeaturedProducts: () => void;
+  loadFeaturedFromProducts: () => void;
 
   // CRUD Operations for Carts
   sendRecoveryEmail: (cartId: string, discount: number) => void;
@@ -257,6 +261,8 @@ const convertProductRowToProduct = (row: ProductRow, index: number = 0): Product
     volume: row.volume || undefined,
     stock: row.stock || 0,
     monthlySales: row.monthlysales || 0,
+    is_featured: row.is_featured || false,
+    featured_order: row.featured_order || 0,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -433,6 +439,15 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
         isInitialized: true,
       });
 
+      // Load featured products from DB data
+      const featuredProducts = products
+        .filter((p) => p.is_featured)
+        .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
+      if (featuredProducts.length > 0) {
+        set({ featuredProductIds: featuredProducts.map((p) => p.id) });
+        console.log('📌 Featured products loaded from DB:', featuredProducts.length);
+      }
+
       console.log('✅ Produits chargés depuis Supabase:', products.length);
     } catch (error) {
       const message = error instanceof SupabaseError ? error.message : 'Erreur de chargement des produits';
@@ -503,10 +518,38 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
 
   // ========== FEATURED PRODUCTS OPERATIONS ==========
 
-  setFeaturedProducts: (productIds: string[]) =>
+  setFeaturedProducts: async (productIds: string[]) => {
+    // Optimistic UI: update local state immediately
     set(() => ({
       featuredProductIds: productIds,
-    })),
+    }));
+
+    // Persist to Supabase
+    try {
+      const updates = productIds.map((id, index) => ({
+        id,
+        is_featured: true,
+        featured_order: index + 1,
+      }));
+      await batchUpdateFeatured(updates);
+
+      // Update local product objects with featured flags
+      set((state) => ({
+        products: state.products.map((p) => {
+          const featuredIndex = productIds.indexOf(p.id);
+          return {
+            ...p,
+            is_featured: featuredIndex >= 0,
+            featured_order: featuredIndex >= 0 ? featuredIndex + 1 : 0,
+          };
+        }),
+      }));
+
+      console.log('✅ Featured products saved to Supabase:', productIds.length);
+    } catch (error) {
+      console.error('❌ Failed to save featured products to Supabase:', error);
+    }
+  },
 
   getFeaturedProducts: () => {
     const state = get();
@@ -542,6 +585,18 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
         featuredProductIds: validIds,
       };
     }),
+
+  loadFeaturedFromProducts: () => {
+    const state = get();
+    const featuredProducts = state.products
+      .filter((p) => p.is_featured)
+      .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
+    const featuredIds = featuredProducts.map((p) => p.id);
+    if (featuredIds.length > 0) {
+      console.log('📌 Featured products loaded from DB:', featuredIds.length);
+      set({ featuredProductIds: featuredIds });
+    }
+  },
 
   // ========== ABANDONED CARTS OPERATIONS ==========
 
@@ -938,5 +993,6 @@ export const useFeaturedProducts = () => {
     removeFeaturedProduct: store.removeFeaturedProduct,
     reorderFeaturedProducts: store.reorderFeaturedProducts,
     validateFeaturedProducts: store.validateFeaturedProducts,
+    loadFeaturedFromProducts: store.loadFeaturedFromProducts,
   };
 };
