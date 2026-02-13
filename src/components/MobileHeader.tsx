@@ -21,69 +21,156 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
 
   return (
     <>
-      {/* Header - Vue Fermée - VERSION SIMPLIFIÉE SANS ANIMATIONS */}
+      {/* Header - Vue Fermée */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#D4AF37]/20">
         <div className="flex items-center justify-between px-4 h-16">
-          {/* Logo Centré */}
-          <div className="flex-1 flex justify-center">
-            <Link to="/" className="flex items-center gap-0 group">
-              <span className="font-serif text-2xl font-normal tracking-widest text-foreground">
-                Rayha
-              </span>
-              <span className="font-sans text-xs font-light tracking-widest text-foreground/70 uppercase ml-1 pt-1">
-                Store
-              </span>
-            </Link>
+          {/* Gauche : Menu Hamburger */}
+          <button
+            onClick={handleMenuToggle}
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95 transition-transform"
+            aria-label="Ouvrir le menu"
+          >
+            <Menu className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
+          </button>
+
+          {/* Centre : Logo */}
+          <Link to="/" className="flex items-center gap-0 group">
+            <span className="font-serif text-2xl font-normal tracking-widest text-foreground">
+              Rayha
+            </span>
+            <span className="font-sans text-xs font-light tracking-widest text-foreground/70 uppercase ml-1 pt-1">
+              Store
+            </span>
+          </Link>
+
+          {/* Droite : Icônes Recherche et Panier */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => console.log('Search clicked')}
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Rechercher"
+            >
+              <Search className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
+            </button>
+            <button
+              onClick={onCartClick}
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95 transition-transform relative"
+              aria-label="Panier"
+            >
+              <ShoppingBag className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
+              {cartItemsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4AF37] text-black text-xs rounded-full flex items-center justify-center font-semibold">
+                  {cartItemsCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Menu Mobile Simplifié - SANS FRAMER MOTION */}
+      {/* Menu Mobile - Vue Ouverte / Drawer - SANS FRAMER MOTION */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white">
-          {/* Header du Menu */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#D4AF37]/20">
-            <h2 className="text-lg font-serif font-normal text-foreground">Menu</h2>
-            <button
-              onClick={handleMenuClose}
-              className="p-2 text-[#A68A56]"
-              aria-label="Fermer le menu"
-            >
-              ✕
-            </button>
-          </div>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={handleMenuClose}
+          />
 
-          {/* Contenu du Menu */}
-          <div className="px-6 py-8">
-            <div className="space-y-4">
-              <Link
-                to="/"
+          {/* Drawer */}
+          <div className="fixed top-0 left-0 z-50 w-full h-full bg-gradient-to-b from-amber-50/95 to-white/95">
+            {/* Header du Drawer */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D4AF37]/20">
+              <div className="w-8" /> {/* Spacer pour centrer le X */}
+              <h2 className="text-lg font-serif font-normal text-foreground">Menu</h2>
+              <button
                 onClick={handleMenuClose}
-                className="block py-3 text-foreground hover:text-[#D4AF37] transition-colors"
+                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95 transition-transform"
+                aria-label="Fermer le menu"
               >
-                Accueil
-              </Link>
-              <Link
-                to="/all-products"
-                onClick={handleMenuClose}
-                className="block py-3 text-foreground hover:text-[#D4AF37] transition-colors"
-              >
-                Nos Parfums
-              </Link>
-              <Link
-                to="/login"
-                onClick={handleMenuClose}
-                className="block py-3 text-foreground hover:text-[#D4AF37] transition-colors"
-              >
-                Connexion
-              </Link>
-              <Link
-                to="/signup"
-                onClick={handleMenuClose}
-                className="block py-3 text-foreground hover:text-[#D4AF37] transition-colors"
-              >
-                S'inscrire
-              </Link>
+                <X className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
+              </button>
+            </div>
+
+            {/* Contenu du Menu */}
+            <div className="flex-1 px-6 py-8">
+              {/* Section Mon Compte */}
+              <div className="mb-8">
+                <h3 className="text-sm font-medium text-foreground/70 uppercase tracking-wider mb-4">
+                  Mon Compte
+                </h3>
+                <div className="space-y-3">
+                  <Link
+                    to="/login"
+                    onClick={handleMenuClose}
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                  >
+                    Se connecter
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={handleMenuClose}
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                  >
+                    S'inscrire
+                  </Link>
+                  <Link
+                    to="/mes-informations"
+                    onClick={handleMenuClose}
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                  >
+                    Mes informations
+                  </Link>
+                </div>
+              </div>
+
+              {/* Section Navigation */}
+              <div className="mb-8">
+                <h3 className="text-sm font-medium text-foreground/70 uppercase tracking-wider mb-4">
+                  Navigation
+                </h3>
+                <div className="space-y-3">
+                  <Link
+                    to="/"
+                    onClick={handleMenuClose}
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                  >
+                    Accueil
+                  </Link>
+                  <Link
+                    to="/all-products"
+                    onClick={handleMenuClose}
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                  >
+                    Tous les produits
+                  </Link>
+                  <Link
+                    to="/favorites"
+                    onClick={handleMenuClose}
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                  >
+                    Favoris
+                  </Link>
+                </div>
+              </div>
+
+              {/* Section Support */}
+              <div>
+                <h3 className="text-sm font-medium text-foreground/70 uppercase tracking-wider mb-4">
+                  Support
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      handleMenuClose();
+                      console.log('Contact clicked');
+                    }}
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                  >
+                    Nous contacter
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
