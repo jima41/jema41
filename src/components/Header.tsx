@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X, LogOut, User, Settings, ChevronRight, Heart } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+// import { motion, AnimatePresence } from 'framer-motion'; // TEMPORARILY DISABLED
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -74,7 +74,7 @@ const AnimatedNavLink = ({ label, href }: NavLinkProps) => {
   };
 
   return (
-    <motion.div className="relative pb-1 cursor-pointer">
+    <div className="relative pb-1 cursor-pointer">
       <a
         href={href}
         onClick={handleClick}
@@ -86,16 +86,10 @@ const AnimatedNavLink = ({ label, href }: NavLinkProps) => {
       >
         {label}
       </a>
-      <motion.div
+      <div
         className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-px bg-[#D4AF37] w-full"
-        variants={underlineVariants}
-        initial="initial"
-        whileHover="hover"
-        style={{
-          originX: 0.5,
-        }}
       />
-    </motion.div>
+    </div>
   );
 };
 
@@ -113,13 +107,9 @@ const PerfumeOverlay = ({ isOpen, onClose }: OverlayProps) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <div
           className="fixed inset-0 z-40 md:hidden backdrop-blur-[2px]"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0)' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
           onClick={onClose}
         />
       )}
@@ -157,7 +147,7 @@ const PerfumeNavDropdown = ({ isOpen, onToggle, onClose }: PerfumeDropdownProps)
   };
 
   return (
-    <motion.div className="relative pb-1 cursor-pointer">
+    <div className="relative pb-1 cursor-pointer">
       <a
         href="/all-products"
         onClick={handleClick}
@@ -169,16 +159,10 @@ const PerfumeNavDropdown = ({ isOpen, onToggle, onClose }: PerfumeDropdownProps)
       >
         Nos Parfums
       </a>
-      <motion.div
+      <div
         className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-px bg-[#D4AF37] w-full"
-        variants={underlineVariants}
-        initial="initial"
-        whileHover="hover"
-        style={{
-          originX: 0.5,
-        }}
       />
-    </motion.div>
+    </div>
   );
 };
 
@@ -195,7 +179,7 @@ interface ActionIconProps {
 
 const ActionIcon = ({ icon, onClick, badge, title, isActive }: ActionIconProps) => {
   return (
-    <motion.button
+    <button
       className={`p-2 rounded-full transition-all duration-200 relative ${
         isActive ? 'bg-amber-50/30' : 'hover:bg-amber-50/20'
       }`}
@@ -210,7 +194,7 @@ const ActionIcon = ({ icon, onClick, badge, title, isActive }: ActionIconProps) 
           {badge}
         </span>
       )}
-    </motion.button>
+    </button>
   );
 };
 
@@ -301,23 +285,17 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
           <ShippingBar />
 
           {/* Main Header with Glassmorphism */}
-          <motion.div
+          <div
             className="backdrop-blur-xl border-b transition-colors duration-200"
             style={{
               backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
               borderColor: 'rgba(212, 175, 55, 0.2)',
             }}
-            animate={{
-              backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
-            }}
           >
             <div className="container mx-auto">
-              <motion.div
+              <div
                 className="flex items-center justify-between w-full transition-[padding] duration-300"
                 style={{
-                  padding: `${1 * headerPaddingScale}rem 1rem`,
-                }}
-                animate={{
                   padding: `${1 * headerPaddingScale}rem 1rem`,
                 }}
               >
@@ -353,7 +331,7 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                   {/* Search */}
                   <form onSubmit={handleSearch} className="relative flex items-center">
                     {isSearchOpen && (
-                      <motion.input
+                      <input
                         type="text"
                         placeholder="Rechercher..."
                         value={searchQuery}
@@ -366,10 +344,6 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                           WebkitBackdropFilter: 'blur(12px)',
                         }}
                         autoFocus
-                        initial={{ opacity: 0, scale: 0.95, width: 0 }}
-                        animate={{ opacity: 1, scale: 1, width: 'auto' }}
-                        exit={{ opacity: 0, scale: 0.95, width: 0 }}
-                        transition={{ duration: 0.2 }}
                       />
                     )}
                     <ActionIcon
@@ -428,12 +402,8 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
 
                       {/* Profile Dropdown */}
                       {isProfileOpen && (
-                        <motion.div
+                        <div
                           className="absolute right-0 mt-2 w-48 bg-background border border-border/40 rounded-lg shadow-lg backdrop-blur-md overflow-hidden z-50"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
                         >
                           <div className="px-4 py-3 border-b border-border/30">
                             <p className="text-sm font-medium">{user.username}</p>
@@ -471,7 +441,7 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                             <LogOut className="w-4 h-4" strokeWidth={1.5} />
                             Déconnexion
                           </button>
-                        </motion.div>
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -489,17 +459,13 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             </div>
 
             {/* Mobile Menu */}
             {isMenuOpen && (
-              <motion.div
+              <div
                 className="md:hidden border-t border-border/20 bg-background/95 backdrop-blur-md"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
               >
                 <nav className="container mx-auto py-4 flex flex-col gap-4 px-4">
                   {/* Tous nos Parfums */}
@@ -515,9 +481,9 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                     </button>
                   </div>
                 </nav>
-              </motion.div>
+              </div>
             )}
-          </motion.div>
+          </div>
         </header>
       </div>
     </>
