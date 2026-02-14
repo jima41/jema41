@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { upsertUserScentProfile } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type OlfactoryFamily = 'gourmand' | 'frais' | 'épicé' | 'boisé' | 'floral' | 'oriental' | 'cuiré';
 
@@ -75,16 +78,43 @@ const quizOptions: QuizOption[] = [
 
 const FragranceQuiz = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedFamily, setSelectedFamily] = useState<OlfactoryFamily | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSelect = (id: OlfactoryFamily) => {
     setSelectedFamily(id);
   };
 
-  const handleDiscover = () => {
-    if (selectedFamily) {
+  const handleDiscover = async () => {
+    if (!selectedFamily || !user) return;
+
+    setIsSaving(true);
+    try {
+      // Save scent profile to database
+      await upsertUserScentProfile(user.id, {
+        primary_family: selectedFamily,
+        quiz_history: [{
+          timestamp: new Date().toISOString(),
+          selected_family: selectedFamily,
+          quiz_type: 'olfactory_family'
+        }],
+        scent_score: {
+          [selectedFamily]: 100 // Full preference for selected family
+        }
+      });
+
+      toast.success('Votre profil olfactif a été sauvegardé !');
+
       // Redirect to all products page with scent filter
       navigate(`/products?scent=${selectedFamily}`);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du profil olfactif:', error);
+      toast.error('Erreur lors de la sauvegarde de votre profil olfactif');
+      // Still navigate even if save fails
+      navigate(`/products?scent=${selectedFamily}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -148,10 +178,10 @@ const FragranceQuiz = () => {
         <div className="text-center">
           <button
             onClick={handleDiscover}
-            disabled={!selectedFamily}
+            disabled={!selectedFamily || isSaving}
             className="group inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border/40 hover:border-[#D4AF37]/60 bg-gradient-to-r from-[#D4AF37]/5 to-transparent hover:from-[#D4AF37]/10 hover:to-[#D4AF37]/5 transition-all text-foreground font-serif text-base font-light tracking-[0.15em] uppercase disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#D4AF37]/10"
           >
-            Découvrir mes parfums
+            {isSaving ? 'Sauvegarde...' : 'Découvrir mes parfums'}
             <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
           </button>
         </div>

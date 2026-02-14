@@ -38,7 +38,7 @@ export function DataSyncInitializer({ children }: { children: React.ReactNode })
     } else {
       console.log('🟠 [DataSyncInitializer] CONDITIONS NON MET - isInitialized:', isInitialized, ', productsLoading:', productsLoading);
     }
-  }, [isInitialized, productsLoading, initializeProducts]);
+  }, [isInitialized, productsLoading]);
 
   // Configuration de la synchronisation en temps réel
   useEffect(() => {
@@ -54,7 +54,7 @@ export function DataSyncInitializer({ children }: { children: React.ReactNode })
         teardownRealtimeSync();
       };
     }
-  }, [isInitialized, setupRealtimeSync, teardownRealtimeSync]);
+  }, [isInitialized]);
 
   // Validation automatique du code promo appliqué au panier
   useEffect(() => {

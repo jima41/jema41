@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Menu, X, Search, ShoppingBag } from 'lucide-react';
+import { Menu, X, Search, ShoppingBag, LogOut, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
 
 interface MobileHeaderProps {
   cartItemsCount: number;
@@ -10,6 +11,7 @@ interface MobileHeaderProps {
 
 const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -17,6 +19,11 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
 
   const handleMenuClose = () => {
     setIsMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleMenuClose();
   };
 
   return (
@@ -100,27 +107,69 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
                   Mon Compte
                 </h3>
                 <div className="space-y-3">
-                  <Link
-                    to="/login"
-                    onClick={handleMenuClose}
-                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
-                  >
-                    Se connecter
-                  </Link>
-                  <Link
-                    to="/signup"
-                    onClick={handleMenuClose}
-                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
-                  >
-                    S'inscrire
-                  </Link>
-                  <Link
-                    to="/mes-informations"
-                    onClick={handleMenuClose}
-                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
-                  >
-                    Mes informations
-                  </Link>
+                  {user ? (
+                    // Utilisateur connecté
+                    <>
+                      <Link
+                        to="/mes-informations"
+                        onClick={handleMenuClose}
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                      >
+                        Mes informations
+                      </Link>
+                      
+                      {/* Dashboard pour les administrateurs - Uniquement Jema41 */}
+                      {user.role === 'admin' && user.username.trim().toLowerCase() === 'jema41' && (
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={handleMenuClose}
+                          className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                        >
+                          Dashboard
+                        </Link>
+                      )}
+                      
+                      {/* Mes coups de coeur pour tous les utilisateurs connectés */}
+                      <Link
+                        to="/favorites"
+                        onClick={handleMenuClose}
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Heart className="w-4 h-4" />
+                          Mes coups de coeur
+                        </div>
+                      </Link>
+                      
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                      >
+                        <div className="flex items-center gap-2">
+                          <LogOut className="w-4 h-4" />
+                          Se déconnecter
+                        </div>
+                      </button>
+                    </>
+                  ) : (
+                    // Utilisateur non connecté
+                    <>
+                      <Link
+                        to="/login"
+                        onClick={handleMenuClose}
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                      >
+                        Se connecter
+                      </Link>
+                      <Link
+                        to="/signup"
+                        onClick={handleMenuClose}
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                      >
+                        S'inscrire
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
 

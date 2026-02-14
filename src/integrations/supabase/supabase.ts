@@ -38,6 +38,13 @@ try {
       localStorage.removeItem(key);
     }
   });
+  // Nettoyer aussi sessionStorage pour forcer la connexion manuelle
+  const sessionKeys = Object.keys(sessionStorage);
+  sessionKeys.forEach((key) => {
+    if (key.startsWith('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
 } catch (_) { /* ignore errors in SSR or restricted environments */ }
 
 export const supabase = createClient<Database>(
@@ -46,7 +53,7 @@ export const supabase = createClient<Database>(
   {
     auth: {
       storage: sessionStorage,
-      persistSession: true,
+      persistSession: false, // Désactiver la connexion automatique
       autoRefreshToken: true,
     },
     realtime: {
@@ -790,6 +797,371 @@ export async function checkSupabaseConnection(): Promise<boolean> {
     return !error;
   } catch {
     return false;
+  }
+}
+
+// ============================================================================
+// SCENT PROFILES OPERATIONS - PROFILS OLFACTIFS
+// ============================================================================
+
+export interface ScentProfile {
+  id: string;
+  user_id: string;
+  primary_family: string | null;
+  secondary_family: string | null;
+  notes_preferred: string[] | null;
+  quiz_history: any;
+  scent_score: Json | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CreateScentProfileInput {
+  user_id: string;
+  primary_family?: string;
+  secondary_family?: string;
+  notes_preferred?: string[];
+  quiz_history?: any;
+  scent_score?: any;
+}
+
+export interface UpdateScentProfileInput extends Partial<CreateScentProfileInput> {
+  id: string;
+}
+
+/**
+ * Récupère le profil olfactif d'un utilisateur
+ */
+export async function getUserScentProfile(userId: string): Promise<ScentProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('scent_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error?.code === 'PGRST116') {
+      // Profil non trouvé
+      return null;
+    }
+
+    if (error) {
+      throw SupabaseError.fromError(error, `getUserScentProfile: ${userId}`);
+    }
+
+    return (data || null) as ScentProfile;
+  } catch (error) {
+    console.error('❌ Erreur getUserScentProfile:', error);
+    throw SupabaseError.fromError(error, `getUserScentProfile: ${userId}`);
+  }
+}
+
+/**
+ * Crée un nouveau profil olfactif
+ */
+export async function createScentProfile(profile: CreateScentProfileInput): Promise<ScentProfile> {
+  try {
+    const { data, error } = await supabase
+      .from('scent_profiles')
+      .insert([profile])
+      .select()
+      .single();
+
+    if (error) {
+      throw SupabaseError.fromError(error, 'createScentProfile');
+    }
+
+    console.log('🌸 Profil olfactif créé');
+    return (data || {}) as ScentProfile;
+  } catch (error) {
+    throw SupabaseError.fromError(error, 'createScentProfile');
+  }
+}
+
+/**
+ * Met à jour un profil olfactif existant
+ */
+export async function updateScentProfile(
+  id: string,
+  updates: Partial<CreateScentProfileInput>
+): Promise<ScentProfile> {
+  try {
+    const { data, error } = await supabase
+      .from('scent_profiles')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw SupabaseError.fromError(error, `updateScentProfile: ${id}`);
+    }
+
+    console.log('🔄 Profil olfactif mis à jour');
+    return (data || {}) as ScentProfile;
+  } catch (error) {
+    throw SupabaseError.fromError(error, `updateScentProfile: ${id}`);
+  }
+}
+
+/**
+ * Met à jour ou crée le profil olfactif d'un utilisateur
+ */
+export async function upsertUserScentProfile(
+  userId: string,
+  profileData: Partial<CreateScentProfileInput>
+): Promise<ScentProfile> {
+  try {
+    // Vérifier si un profil existe déjà
+    const existingProfile = await getUserScentProfile(userId);
+
+    if (existingProfile) {
+      // Mettre à jour
+      return await updateScentProfile(existingProfile.id, {
+        ...profileData,
+        user_id: userId
+      });
+    } else {
+      // Créer
+      return await createScentProfile({
+        user_id: userId,
+        ...profileData
+      });
+    }
+  } catch (error) {
+    throw SupabaseError.fromError(error, `upsertUserScentProfile: ${userId}`);
+  }
+}
+
+/**
+ * Récupère tous les profils olfactifs (admin seulement)
+ */
+export async function getAllScentProfiles(): Promise<ScentProfile[]> {
+  try {
+    const { data, error } = await supabase
+      .from('scent_profiles')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      throw SupabaseError.fromError(error, 'getAllScentProfiles');
+    }
+
+    return (data || []) as ScentProfile[];
+  } catch (error) {
+    throw SupabaseError.fromError(error, 'getAllScentProfiles');
+  }
+}
+
+// ============================================================================
+// GESTION DU STOCKAGE D'IMAGES
+// ============================================================================
+
+/**
+ * Upload une image vers Supabase Storage
+ * @param file Le fichier image à uploader
+ * @param bucket Le nom du bucket (défaut: 'product-images')
+ * @param folder Le dossier dans le bucket (défaut: 'products')
+ * @returns L'URL publique de l'image uploadée
+ */
+export async function uploadProductImage(
+  file: File,
+  bucket: string = 'product-images',
+  folder: string = 'products'
+): Promise<string> {
+  try {
+    // Compresser l'image si nécessaire
+    const compressedFile = await compressImage(file, 1); // Max 1MB
+
+    // Vérifier si le bucket existe
+    console.log('🔍 Vérification du bucket:', bucket);
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('❌ Erreur lors de la vérification des buckets:', listError);
+      throw new Error(`Erreur de configuration Supabase Storage: ${listError.message}`);
+    }
+
+    const bucketExists = buckets?.some(b => b.name === bucket);
+    if (!bucketExists) {
+      console.log(`📦 Le bucket '${bucket}' n'existe pas, tentative de création...`);
+      try {
+        await createStorageBucket(bucket, true);
+        console.log(`✅ Bucket '${bucket}' créé automatiquement`);
+      } catch (createError) {
+        console.error('❌ Impossible de créer le bucket:', createError);
+        throw new Error(`Le bucket '${bucket}' n'existe pas et ne peut pas être créé automatiquement. Veuillez le créer manuellement dans Supabase Dashboard > Storage.`);
+      }
+    }
+
+    // Générer un nom de fichier unique
+    const fileExt = compressedFile.name.split('.').pop() || 'jpg';
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const fileName = `${folder}/produit-${timestamp}-${randomId}.${fileExt}`;
+
+    console.log('📤 Upload image:', fileName, `(${(compressedFile.size / 1024 / 1024).toFixed(2)}MB)`);
+
+    // Upload vers Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, compressedFile, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('❌ Erreur upload Supabase Storage:', error);
+      
+      // Messages d'erreur plus spécifiques
+      if (error.message.includes('Bucket not found')) {
+        throw new Error(`Le bucket '${bucket}' n'existe pas. Créez-le dans Supabase Dashboard > Storage.`);
+      } else if (error.message.includes('Unauthorized')) {
+        throw new Error('Accès non autorisé au stockage. Vérifiez les politiques RLS.');
+      } else if (error.message.includes('Payload too large')) {
+        throw new Error('Fichier trop volumineux.');
+      }
+      
+      throw SupabaseError.fromError(error, 'uploadProductImage');
+    }
+
+    // Récupérer l'URL publique
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+
+    if (!urlData.publicUrl) {
+      throw new Error('Impossible de récupérer l\'URL publique de l\'image');
+    }
+
+    console.log('✅ Image uploadée:', urlData.publicUrl);
+    return urlData.publicUrl;
+
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'upload de l\'image:', error);
+    throw error; // Re-throw pour que le composant puisse gérer l'erreur
+  }
+}
+
+/**
+ * Supprime une image de Supabase Storage
+ * @param imageUrl L'URL de l'image à supprimer
+ * @param bucket Le nom du bucket (défaut: 'product-images')
+ */
+export async function deleteProductImage(
+  imageUrl: string,
+  bucket: string = 'product-images'
+): Promise<void> {
+  try {
+    // Extraire le nom du fichier depuis l'URL
+    const urlParts = imageUrl.split('/');
+    const fileName = urlParts.slice(-2).join('/'); // Récupère "products/filename.ext"
+
+    console.log('🗑️ Suppression image:', fileName);
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .remove([fileName]);
+
+    if (error) {
+      console.error('❌ Erreur suppression Supabase Storage:', error);
+      throw SupabaseError.fromError(error, 'deleteProductImage');
+    }
+
+    console.log('✅ Image supprimée:', fileName);
+
+  } catch (error) {
+    console.error('❌ Erreur lors de la suppression de l\'image:', error);
+    throw SupabaseError.fromError(error, 'deleteProductImage');
+  }
+}
+
+/**
+ * Vérifie si une URL est une URL Supabase Storage
+ * @param url L'URL à vérifier
+ * @returns true si c'est une URL Supabase Storage
+ */
+export function isSupabaseStorageUrl(url: string): boolean {
+  return url.includes('supabase') && url.includes('storage');
+}
+
+/**
+ * Compresse une image si elle dépasse 1MB
+ * @param file Le fichier image à compresser
+ * @param maxSizeMB Taille maximale en MB (défaut: 1)
+ * @returns Le fichier compressé ou l'original si déjà petit
+ */
+export async function compressImage(file: File, maxSizeMB: number = 1): Promise<File> {
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+  if (file.size <= maxSizeBytes) {
+    return file; // Pas besoin de compression
+  }
+
+  console.log(`🗜️ Compression de l'image (${(file.size / 1024 / 1024).toFixed(2)}MB)...`);
+
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const img = new Image();
+
+    img.onload = () => {
+      // Calculer les nouvelles dimensions (max 1920px de largeur)
+      const maxWidth = 1920;
+      const ratio = Math.min(maxWidth / img.width, 1);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+
+      // Dessiner et compresser
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now(),
+          });
+          console.log(`✅ Image compressée: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+          resolve(compressedFile);
+        } else {
+          resolve(file); // En cas d'erreur, retourner l'original
+        }
+      }, file.type, 0.8); // Qualité 80%
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * Crée un bucket Supabase Storage s'il n'existe pas
+ * @param bucketName Le nom du bucket à créer
+ * @param isPublic Si le bucket doit être public (défaut: true)
+ */
+export async function createStorageBucket(bucketName: string, isPublic: boolean = true): Promise<void> {
+  try {
+    console.log(`🏗️ Création du bucket '${bucketName}'...`);
+    
+    const { data, error } = await supabase.storage.createBucket(bucketName, {
+      public: isPublic,
+      allowedMimeTypes: ['image/*'],
+      fileSizeLimit: 5242880, // 5MB
+    });
+
+    if (error) {
+      // Si le bucket existe déjà, ce n'est pas une erreur
+      if (error.message.includes('already exists') || error.message.includes('Bucket already exists')) {
+        console.log(`✅ Le bucket '${bucketName}' existe déjà`);
+        return;
+      }
+      console.error('❌ Erreur création bucket:', error);
+      throw SupabaseError.fromError(error, 'createStorageBucket');
+    }
+
+    console.log(`✅ Bucket '${bucketName}' créé avec succès`);
+  } catch (error) {
+    console.error('❌ Erreur lors de la création du bucket:', error);
+    throw error;
   }
 }
 

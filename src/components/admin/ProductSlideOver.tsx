@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, ChevronDown, Search, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { X, ChevronDown, Search, Loader2, Upload, Camera, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import { useAdminStore, Product, classifyPerfume } from '@/store/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import useSupabaseErrorHandler from '@/hooks/use-supabase-error';
 import { useOlfactoryNotesStore } from '@/store/useOlfactoryNotesStore';
+import { uploadProductImage, deleteProductImage, isSupabaseStorageUrl } from '@/integrations/supabase/supabase';
 import type { OlfactoryFamily } from '@/lib/olfactory';
 
 interface ProductSlideOverProps {
@@ -34,6 +35,231 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
   const { notes: allOlfactoryNotes, getNotesByPyramid } = useOlfactoryNotesStore();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [oldImageUrl, setOldImageUrl] = useState<string | null>(null);
+  const [isInputsReady, setIsInputsReady] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadStatus, setImageUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Marquer les inputs comme prêts après le montage
+  useEffect(() => {
+    setIsInputsReady(true);
+  }, []);
+
+  // Effacer l'erreur d'image quand une URL est présente
+  useEffect(() => {
+    if (formData.image.trim()) {
+      setErrors(prev => ({ ...prev, image: undefined }));
+    }
+  }, [formData.image]);
+
+  // Gestionnaire d'upload de fichier vers Supabase Storage
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🔍 handleFileUpload appelé avec event:', event);
+    console.log('🔍 event.target:', event.target);
+    console.log('🔍 event.target.files:', event.target.files);
+
+    const file = event.target.files?.[0];
+    if (file) {
+      alert('Fichier reçu !'); // Alerte pour diagnostiquer
+      console.log('📁 Fichier détecté:', file);
+      console.log('📁 Fichier sélectionné:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        sizeMB: (file.size / 1024 / 1024).toFixed(2) + 'MB'
+      });
+      
+      // Vérifier les variables d'environnement
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      console.log('🔧 Variables Supabase:', {
+        url: supabaseUrl ? '✅ Présente' : '❌ MANQUANTE',
+        key: supabaseKey ? '✅ Présente' : '❌ MANQUANTE'
+      });
+      
+      try {
+        setIsUploadingImage(true);
+        setImageUploadStatus('uploading');
+        
+        // Afficher l'aperçu immédiat
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+        
+        // Vérifier le type de fichier
+        if (!file.type.startsWith('image/')) {
+          console.warn('⚠️ Type de fichier invalide:', file.type);
+          toast.error('Veuillez sélectionner un fichier image valide');
+          URL.revokeObjectURL(previewUrl); // Nettoyer l'URL temporaire
+          setImageUploadStatus('error');
+          return;
+        }
+
+        // Vérifier la taille (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          console.warn('⚠️ Fichier trop volumineux:', file.size);
+          toast.error('L\'image ne doit pas dépasser 5MB');
+          URL.revokeObjectURL(previewUrl); // Nettoyer l'URL temporaire
+          setImageUploadStatus('error');
+          return;
+        }
+
+        console.log('📤 Démarrage de l\'upload vers Supabase Storage...');
+        
+        // Upload vers Supabase Storage
+        const imageUrl = await uploadProductImage(file, 'product-images', 'products');
+        console.log('✅ URL reçue de Supabase:', imageUrl);
+        
+        // Nettoyer l'URL temporaire et mettre à jour avec l'URL finale
+        URL.revokeObjectURL(previewUrl);
+        
+        // Mettre à jour le formulaire avec la nouvelle URL (équivalent de setValue avec shouldValidate)
+        console.log('📝 Injection de l\'URL dans le formulaire:', imageUrl);
+        setFormData(prev => ({ ...prev, image: imageUrl }));
+        setImagePreview(imageUrl);
+        setImageUploadStatus('success');
+        
+        // Effacer l'erreur de validation pour ce champ (équivalent de shouldValidate: true)
+        setErrors(prev => ({ ...prev, image: undefined }));
+        
+        console.log('🎉 Upload terminé avec succès');
+        toast.success('Image uploadée avec succès !');
+        
+      } catch (error: any) {
+        console.error('❌ Erreur complète lors de l\'upload:', error);
+        console.error('❌ Message d\'erreur:', error.message);
+        console.error('❌ Stack trace:', error.stack);
+        toast.error(error.message || 'Erreur lors du chargement de l\'image');
+        setImageUploadStatus('error');
+      } finally {
+        setIsUploadingImage(false);
+        // Réinitialiser l'input pour permettre de sélectionner le même fichier à nouveau
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+          console.log('🔄 Input file réinitialisé');
+        }
+      }
+    } else {
+      console.log('⚠️ Aucun fichier sélectionné dans event.target.files');
+    }
+  };
+
+  // Gestionnaire de capture caméra vers Supabase Storage
+  const handleCameraCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        setIsUploadingImage(true);
+        setImageUploadStatus('uploading');
+        
+        // Vérifier le type de fichier
+        if (!file.type.startsWith('image/')) {
+          toast.error('Veuillez capturer une image valide');
+          setImageUploadStatus('error');
+          return;
+        }
+
+        // Vérifier la taille (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('L\'image ne doit pas dépasser 5MB');
+          setImageUploadStatus('error');
+          return;
+        }
+
+        console.log('📷 Upload de la capture vers Supabase Storage...');
+        
+        // Upload vers Supabase Storage
+        const imageUrl = await uploadProductImage(file, 'product-images', 'products');
+        
+        // Mettre à jour le formulaire avec la nouvelle URL (équivalent de setValue avec shouldValidate)
+        console.log('📝 Injection de l\'URL dans le formulaire:', imageUrl);
+        setFormData({ ...formData, image: imageUrl });
+        setImagePreview(imageUrl);
+        setImageUploadStatus('success');
+        
+        // Effacer l'erreur de validation pour ce champ (équivalent de shouldValidate: true)
+        setErrors(prev => ({ ...prev, image: undefined }));
+        
+        toast.success('Image capturée et uploadée avec succès !');
+        
+      } catch (error) {
+        console.error('Erreur lors de la capture:', error);
+        toast.error('Erreur lors de la capture de l\'image');
+        setImageUploadStatus('error');
+      } finally {
+        setIsUploadingImage(false);
+        // Réinitialiser l'input pour permettre de capturer à nouveau
+        if (cameraInputRef.current) {
+          cameraInputRef.current.value = '';
+        }
+      }
+    }
+  };
+
+  // Gestionnaire pour déclencher l'upload de fichier
+  const triggerFileUpload = () => {
+    console.log('🎯 triggerFileUpload appelé');
+    console.log('📋 État des inputs:', {
+      isInputsReady,
+      fileInputRef: !!fileInputRef.current,
+      fileInputElement: fileInputRef.current
+    });
+
+    if (!isInputsReady) {
+      console.warn('⚠️ Inputs pas encore prêts');
+      toast.error('Interface en cours de chargement, veuillez réessayer');
+      return;
+    }
+
+    if (!fileInputRef.current) {
+      console.error('❌ Référence fileInputRef non disponible');
+      toast.error('Erreur technique: input fichier non disponible');
+      return;
+    }
+
+    try {
+      console.log('📂 Déclenchement du click sur fileInput');
+      fileInputRef.current.click();
+      console.log('✅ Click déclenché sur fileInput');
+    } catch (error) {
+      console.error('❌ Erreur lors du déclenchement du fileInput:', error);
+      toast.error('Erreur lors de l\'ouverture du sélecteur de fichiers');
+    }
+  };
+
+  // Gestionnaire pour déclencher la capture caméra
+  const triggerCameraCapture = () => {
+    console.log('📷 triggerCameraCapture appelé');
+    console.log('📋 État des inputs:', {
+      isInputsReady,
+      cameraInputRef: !!cameraInputRef.current,
+      cameraInputElement: cameraInputRef.current
+    });
+
+    if (!isInputsReady) {
+      console.warn('⚠️ Inputs pas encore prêts');
+      toast.error('Interface en cours de chargement, veuillez réessayer');
+      return;
+    }
+
+    if (!cameraInputRef.current) {
+      console.error('❌ Référence cameraInputRef non disponible');
+      toast.error('Erreur technique: input caméra non disponible');
+      return;
+    }
+
+    try {
+      console.log('📷 Déclenchement du click sur cameraInput');
+      cameraInputRef.current.click();
+      console.log('✅ Click déclenché sur cameraInput');
+    } catch (error) {
+      console.error('❌ Erreur lors du déclenchement du cameraInput:', error);
+      toast.error('Erreur lors de l\'ouverture de la caméra');
+    }
+  };
   
   const [formData, setFormData] = useState({
     name: '',
@@ -109,6 +335,9 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
         notes_coeur: product.notes_coeur || [],
         notes_fond: product.notes_fond || [],
       });
+      // Set image preview and store old image URL for potential cleanup
+      setImagePreview(product.image);
+      setOldImageUrl(product.image);
     } else {
       setFormData({
         name: '',
@@ -124,6 +353,8 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
         notes_coeur: [],
         notes_fond: [],
       });
+      setImagePreview(null);
+      setOldImageUrl(null);
     }
     setSearchQueries({ tete: '', coeur: '', fond: '' });
     setOpenDropdowns({ tete: false, coeur: false, fond: false });
@@ -131,6 +362,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
   }, [mode, product, isOpen]);
 
   const validateForm = (): boolean => {
+    console.log('🔍 Validation du formulaire - formData.image:', formData.image);
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = 'Le nom est requis';
@@ -142,7 +374,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
     if (calculatedFamilies.length === 0) {
       newErrors.families = 'Impossible de classifier le parfum - sélectionnez d\'autres notes';
     }
-    if (!formData.image.trim()) newErrors.image = "L'URL de l'image est requise";
+    if (!formData.image.trim()) newErrors.image = "L'URL de l'image, une image uploadée ou une URL Supabase Storage est requise";
     if (formData.stock < 0) newErrors.stock = 'Le stock ne peut pas être négatif';
 
     setErrors(newErrors);
@@ -162,6 +394,20 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
         category: calculatedFamilies[0] || 'Non classifié',
         notes: [...formData.notes_tete, ...formData.notes_coeur, ...formData.notes_fond],
       };
+
+      // Gérer la suppression de l'ancienne image si elle a été remplacée
+      if (mode === 'edit' && oldImageUrl && oldImageUrl !== formData.image) {
+        // Vérifier si l'ancienne image était stockée sur Supabase Storage
+        if (isSupabaseStorageUrl(oldImageUrl)) {
+          try {
+            console.log('🗑️ Suppression de l\'ancienne image...');
+            await deleteProductImage(oldImageUrl);
+          } catch (deleteError) {
+            console.warn('⚠️ Impossible de supprimer l\'ancienne image:', deleteError);
+            // Ne pas échouer la sauvegarde pour autant
+          }
+        }
+      }
 
       if (mode === 'add') {
         const newProduct: Product = {
@@ -546,17 +792,134 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           {/* URL Image */}
           <div>
             <Label className="text-admin-text-secondary uppercase text-xs tracking-wide font-montserrat mb-2 block">
-              URL Image *
+              Image du Produit *
             </Label>
+            
+            {/* Aperçu de l'image */}
+            {imagePreview && (
+              <div className="mb-3">
+                <img 
+                  src={imagePreview} 
+                  alt="Aperçu" 
+                  className="w-full h-32 object-cover rounded-lg border border-admin-border"
+                />
+                {/* Feedback visuel du statut d'upload */}
+                {imageUploadStatus === 'success' && (
+                  <div className="flex items-center mt-2 text-green-400 text-sm">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Image uploadée avec succès
+                  </div>
+                )}
+                {imageUploadStatus === 'error' && (
+                  <div className="flex items-center mt-2 text-red-400 text-sm">
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    Erreur lors de l'upload
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Boutons d'upload */}
+            <div className="flex gap-2 mb-3">
+              <Button
+                type="button"
+                onClick={() => {
+                  console.log('🖱️ Bouton Fichiers cliqué');
+                  triggerFileUpload();
+                }}
+                variant="outline"
+                size="sm"
+                className="flex-1 border-admin-border text-admin-text-secondary hover:text-admin-gold hover:border-admin-gold"
+                disabled={!isInputsReady || isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 mr-2" />
+                )}
+                {isUploadingImage ? 'Upload...' : 'Fichiers'}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  console.log('📷 Bouton Caméra cliqué');
+                  triggerCameraCapture();
+                }}
+                variant="outline"
+                size="sm"
+                className="flex-1 border-admin-border text-admin-text-secondary hover:text-admin-gold hover:border-admin-gold"
+                disabled={!isInputsReady || isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 mr-2" />
+                )}
+                {isUploadingImage ? 'Capture...' : 'Caméra'}
+              </Button>
+            </div>
+
+            {/* Champ URL de l'image */}
             <Input
               value={formData.image}
               onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              placeholder="https://..."
+              placeholder="https://... ou upload via les boutons ci-dessus"
               className={`bg-admin-card border-admin-border text-admin-text-primary ${
                 errors.image ? 'border-red-500' : ''
               }`}
             />
             {errors.image && <p className="text-red-400 text-xs mt-1">{errors.image}</p>}
+            <p className="text-xs text-admin-text-secondary mt-1">
+              Upload une image ou colle une URL externe
+            </p>
+
+            {/* Input caché pour les fichiers */}
+            <input
+              ref={(el) => {
+                console.log('📋 File input ref assigné:', el);
+                fileInputRef.current = el;
+              }}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                console.log('📁 File input onChange déclenché');
+                handleFileUpload(e);
+              }}
+              className="hidden"
+            />
+
+            {/* Input caché pour la caméra */}
+            <input
+              ref={(el) => {
+                console.log('📷 Camera input ref assigné:', el);
+                cameraInputRef.current = el;
+              }}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                console.log('📷 Camera input onChange déclenché');
+                handleCameraCapture(e);
+              }}
+              className="hidden"
+            />
+
+            {/* Champ URL (optionnel si image uploadée) */}
+            <Input
+              value={formData.image}
+              onChange={(e) => {
+                setFormData({ ...formData, image: e.target.value });
+                setImagePreview(e.target.value || null);
+              }}
+              placeholder="https://... ou URL générée automatiquement"
+              className={`bg-admin-card border-admin-border text-admin-text-primary ${
+                errors.image ? 'border-red-500' : ''
+              }`}
+            />
+            {errors.image && <p className="text-red-400 text-xs mt-1">{errors.image}</p>}
+            <p className="text-xs text-admin-text-secondary mt-1">
+              Utilisez les boutons ci-dessus pour uploader ou collez une URL externe
+            </p>
           </div>
 
           {/* Description */}
@@ -625,13 +988,18 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploadingImage}
             className="flex-1 bg-gradient-to-r from-amber-400 to-amber-500 text-black hover:from-amber-300 hover:to-amber-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 {'Sauvegarde...'}
+              </>
+            ) : isUploadingImage ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {'Upload en cours...'}
               </>
             ) : (
               mode === 'add' ? 'Créer' : 'Modifier'

@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
-import heroImage from '@/assets/hero-perfume.jpg';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
 const Hero = () => {
@@ -56,10 +55,13 @@ const Hero = () => {
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
-          src={heroImage}
-          alt="Luxury Perfume Collection"
-          className="w-full h-full object-cover object-center"
-        />
+          src="https://ibkcaxatevlfvtedeqrv.supabase.co/storage/v1/object/public/public-assets/hero-rayha-perfume.webp.jpg"
+          alt="Collection Parfum Rayha"
+          className="w-full h-full object-cover md:object-cover object-contain object-center"
+          loading="eager"          style={{
+            imageRendering: '-webkit-optimize-contrast',
+            WebkitOptimizeContrast: 'true'
+          }}        />
         <div className="absolute inset-0 bg-gradient-to-r from-background/95 sm:from-background/80 via-background/50 sm:via-background/40 to-transparent" />
       </div>
 

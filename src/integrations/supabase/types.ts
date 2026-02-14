@@ -50,6 +50,50 @@ export type Database = {
         }
         Relationships: []
       }
+      scent_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          primary_family: string | null
+          secondary_family: string | null
+          notes_preferred: string[] | null
+          quiz_history: Json | null
+          scent_score: Json | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          primary_family?: string | null
+          secondary_family?: string | null
+          notes_preferred?: string[] | null
+          quiz_history?: Json | null
+          scent_score?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          primary_family?: string | null
+          secondary_family?: string | null
+          notes_preferred?: string[] | null
+          quiz_history?: Json | null
+          scent_score?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scent_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

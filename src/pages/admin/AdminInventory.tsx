@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ProductTable, StockItem } from '@/components/admin/ProductTable';
 import MobileProductCard from '@/components/admin/MobileProductCard';
 import { ProductSlideOver } from '@/components/admin/ProductSlideOver';
-import { EditStockDialog } from '@/components/admin/EditStockDialog';
 import { useStockInventory } from '@/hooks/use-stock-inventory';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -18,7 +17,6 @@ const AdminInventory = () => {
   const { resetProductsToDefaults, products } = useAdminStore();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [slideOverMode, setSlideOverMode] = useState<'add' | 'edit'>('add');
 
@@ -45,9 +43,44 @@ const AdminInventory = () => {
     setIsSlideOverOpen(true);
   };
 
-  const handleEditProduct = (item: StockItem) => {
-    setSelectedItem(item);
-    setDialogOpen(true);
+  const handleEditProduct = (item: StockItem | any) => {
+    // Find the complete StockItem from stockItems if we only have partial data
+    const completeItem = stockItems.find(s => s.id === item.id) || item;
+
+    // Convert StockItem to Product format for editing
+    const productToEdit: any = {
+      id: completeItem.id,
+      name: completeItem.name,
+      brand: completeItem.brand || '',
+      price: completeItem.price,
+      image: completeItem.image,
+      stock: completeItem.currentStock,
+      monthlySales: completeItem.weeklyVelocity * 4.3, // Convert weekly to monthly
+      description: completeItem.description || '',
+      volume: completeItem.volume || '50ml',
+      gender: completeItem.gender || 'mixte',
+      notes_tete: completeItem.notes_tete || [],
+      notes_coeur: completeItem.notes_coeur || [],
+      notes_fond: completeItem.notes_fond || [],
+      concentration: completeItem.concentration || 'EDP',
+      olfactory_family: completeItem.olfactory_family || 'floral',
+      accords: completeItem.accords || [],
+      longevity: completeItem.longevity || 6,
+      sillage: completeItem.sillage || 3,
+      season: completeItem.season || 'all',
+      time_of_day: completeItem.time_of_day || 'day',
+      age_group: completeItem.age_group || 'adult',
+      occasion: completeItem.occasion || 'everyday',
+      mood: completeItem.mood || 'elegant',
+      weather: completeItem.weather || 'temperate',
+      complementary_notes: completeItem.complementary_notes || [],
+      created_at: completeItem.created_at,
+      updated_at: completeItem.updated_at
+    };
+
+    setSelectedItem(completeItem);
+    setSlideOverMode('edit');
+    setIsSlideOverOpen(true);
   };
 
   const handleResetToDefaults = () => {
@@ -190,14 +223,6 @@ const AdminInventory = () => {
           />
         </div>
       )}
-
-      {/* Edit Dialog */}
-      <EditStockDialog
-        item={selectedItem}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSave={handleSave}
-      />
 
       {/* Product Slide Over */}
       <ProductSlideOver

@@ -33,25 +33,31 @@ import AdminAbandonedInsights from "./pages/admin/AdminAbandonedInsights";
 import AdminPromoCodes from "./pages/admin/AdminPromoCodes";
 import AdminOlfactoryNotes from "./pages/admin/AdminOlfactoryNotes";
 import AdminGuide from "./pages/AdminGuide";
+import AdminScentIDPage from "./pages/admin/AdminScentIDPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import SyncStatus from "./components/SyncStatus";
+import CookieBanner from "./components/CookieBanner";
+import { useTracking } from "./hooks/useTracking";
 import { Suspense } from "react";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <SyncStatus />
-      <AnalyticsProvider>
+const App = () => {
+  useTracking(); // Charger les scripts de tracking selon le consentement
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <SyncStatus />
+        <AnalyticsProvider>
         <AuthProvider>
           <AdminProvider>
             <CartProvider>
-              <DataSyncInitializer>
-                <UserDataSyncInitializer />
+                <DataSyncInitializer>
+                  <UserDataSyncInitializer />
                 <AnnouncementBar />
                 <HashRouter>
                   <ScrollToTop />
@@ -74,7 +80,11 @@ const App = () => (
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/mes-informations" element={<UserProfile />} />
-                    <Route path="/admin" element={<AdminGuide />} />
+                    <Route path="/admin" element={
+                      <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                        <AdminGuide />
+                      </ProtectedRoute>
+                    } />
                 
                 {/* Admin Protected Routes - Only Jema41 (admin) */}
                 <Route
@@ -177,19 +187,31 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/admin/scent-id"
+                  element={
+                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                      <AdminLayout>
+                        <AdminScentIDPage />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
               </Suspense>
+              <CookieBanner />
             </HashRouter>
-              </DataSyncInitializer>
+            </DataSyncInitializer>
             </CartProvider>
           </AdminProvider>
         </AuthProvider>
       </AnalyticsProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

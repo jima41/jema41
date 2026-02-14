@@ -451,11 +451,31 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
       console.log('✅ Produits chargés depuis Supabase:', products.length);
     } catch (error) {
       const message = error instanceof SupabaseError ? error.message : 'Erreur de chargement des produits';
-      set({
-        productsLoading: false,
-        productsError: message,
-      });
       console.error('❌ Erreur initializeProducts:', error);
+      
+      // Fallback to default products
+      console.log('🔄 Utilisation des produits par défaut...');
+      const defaultProducts = DEFAULT_PRODUCTS.map((product, index) => ({
+        ...product,
+        id: product.id,
+        families: classifyPerfume(product.scent),
+        notes_tete: [],
+        notes_coeur: [],
+        notes_fond: [],
+        stock: 10,
+        monthlySales: 0,
+        is_featured: false,
+        featured_order: 0,
+      }));
+      
+      set({
+        products: defaultProducts,
+        productsLoading: false,
+        productsError: null,
+        isInitialized: true,
+      });
+      
+      console.log('✅ Produits par défaut chargés:', defaultProducts.length);
     }
   },
 

@@ -228,6 +228,28 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   const isMounted = useIsMounted();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
+  // Scroll handling - doit être appelé avant les conditions de rendu
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    // Throttle scroll event
+    let ticking = false;
+    const throttledScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledScroll);
+    return () => window.removeEventListener('scroll', throttledScroll);
+  }, []);
+
   // HYDRATION-SAFE: Rendre une version neutre tant que le composant n'est pas monté
   if (!isMounted) {
     return (
@@ -250,28 +272,6 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   if (isMobile) {
     return <MobileHeader cartItemsCount={cartItemsCount} onCartClick={onCartClick} />;
   }
-
-  // Scroll handling
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    // Throttle scroll event
-    let ticking = false;
-    const throttledScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          handleScroll();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', throttledScroll);
-    return () => window.removeEventListener('scroll', throttledScroll);
-  }, []);
 
   // Calculate scale and opacity based on scroll
   const isScrolled = scrollY > 40;
@@ -403,8 +403,8 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                 )}
               </div>
 
-              {/* Admin */}
-              {user?.role === 'admin' && (
+              {/* Admin - Uniquement Jema41 */}
+              {user?.role === 'admin' && user?.username?.trim().toLowerCase() === 'jema41' && (
                 <div className="hidden md:block">
                   <ActionIcon
                     icon={<Settings strokeWidth={1.5} className="w-5 h-5" />}
@@ -436,7 +436,7 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                       <div className="px-4 py-3 border-b border-border/30">
                         <p className="text-sm font-medium">{user.username}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
-                        {user.role === 'admin' && (
+                        {user.role === 'admin' && user.username.trim().toLowerCase() === 'jema41' && (
                           <span className="inline-block mt-1 px-2 py-1 text-xs bg-[#D4AF37]/20 text-[#D4AF37] rounded">
                             Admin
                           </span>
