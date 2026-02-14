@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Menu, X, Search, ShoppingBag, LogOut, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,31 @@ interface MobileHeaderProps {
 
 const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   const { user, logout } = useAuth();
+
+  // Scroll handling
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    let ticking = false;
+    const throttledScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledScroll);
+    return () => window.removeEventListener('scroll', throttledScroll);
+  }, []);
+
+  const isScrolled = scrollY > 40;
 
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -29,7 +53,7 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
   return (
     <>
       {/* Header - Vue Fermée */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#D4AF37]/20">
+      <header className={`sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-admin-gold/10 transition-all duration-300 ${isScrolled ? 'shadow-sm' : ''}`}>
         <div className="flex items-center justify-between px-4 h-16">
           {/* Gauche : Menu Hamburger */}
           <button
@@ -66,7 +90,7 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
             >
               <ShoppingBag className="w-5 h-5 text-[#A68A56]" strokeWidth={1.5} />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4AF37] text-black text-xs rounded-full flex items-center justify-center font-semibold">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-admin-gold text-black text-xs rounded-full flex items-center justify-center font-semibold">
                   {cartItemsCount}
                 </span>
               )}
@@ -87,7 +111,7 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
           {/* Drawer */}
           <div className="fixed top-0 left-0 z-50 w-full h-full bg-gradient-to-b from-amber-50/95 to-white/95">
             {/* Header du Drawer */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D4AF37]/20">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-admin-gold/20">
               <div className="w-8" /> {/* Spacer pour centrer le X */}
               <h2 className="text-lg font-serif font-normal text-foreground">Menu</h2>
               <button
@@ -113,17 +137,17 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
                       <Link
                         to="/mes-informations"
                         onClick={handleMenuClose}
-                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                       >
                         Mes informations
                       </Link>
                       
-                      {/* Dashboard pour les administrateurs - Uniquement Jema41 */}
-                      {user.role === 'admin' && user.username.trim().toLowerCase() === 'jema41' && (
+                      {/* Dashboard pour les administrateurs - Uniquement admin */}
+                      {user.role === 'admin' && user.username.trim().toLowerCase() === 'admin' && (
                         <Link
                           to="/admin/dashboard"
                           onClick={handleMenuClose}
-                          className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                          className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                         >
                           Dashboard
                         </Link>
@@ -133,7 +157,7 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
                       <Link
                         to="/favorites"
                         onClick={handleMenuClose}
-                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                       >
                         <div className="flex items-center gap-2">
                           <Heart className="w-4 h-4" />
@@ -143,7 +167,7 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
                       
                       <button
                         onClick={handleLogout}
-                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                       >
                         <div className="flex items-center gap-2">
                           <LogOut className="w-4 h-4" />
@@ -157,14 +181,14 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
                       <Link
                         to="/login"
                         onClick={handleMenuClose}
-                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                       >
                         Se connecter
                       </Link>
                       <Link
                         to="/signup"
                         onClick={handleMenuClose}
-                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                        className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                       >
                         S'inscrire
                       </Link>
@@ -182,21 +206,21 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
                   <Link
                     to="/"
                     onClick={handleMenuClose}
-                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                   >
                     Accueil
                   </Link>
                   <Link
                     to="/all-products"
                     onClick={handleMenuClose}
-                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                   >
                     Tous les produits
                   </Link>
                   <Link
                     to="/favorites"
                     onClick={handleMenuClose}
-                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                   >
                     Favoris
                   </Link>
@@ -214,7 +238,7 @@ const MobileHeader = ({ cartItemsCount, onCartClick }: MobileHeaderProps) => {
                       handleMenuClose();
                       console.log('Contact clicked');
                     }}
-                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] rounded-lg transition-colors active:scale-95"
+                    className="block w-full text-left px-4 py-3 text-foreground hover:bg-admin-gold/10 hover:text-admin-gold rounded-lg transition-colors active:scale-95"
                   >
                     Nous contacter
                   </button>

@@ -1,14 +1,14 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/supabase';
 
-const DEFAULT_ADMIN_USERNAME = 'jema41';
+const DEFAULT_ADMIN_USERNAME = 'admin';
 const DEFAULT_ADMIN_EMAIL = 'admin@rayha.com';
 
 const isAdminEmail = (email: string) =>
   email.trim().toLowerCase() === (import.meta.env.VITE_ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).toLowerCase();
 
 const getAdminDisplayUsername = () =>
-  import.meta.env.VITE_ADMIN_USERNAME || 'Jema41';
+  import.meta.env.VITE_ADMIN_USERNAME || 'admin';
 
 export interface User {
   id: string;

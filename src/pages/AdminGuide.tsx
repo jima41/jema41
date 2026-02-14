@@ -12,9 +12,9 @@ const AdminGuide = () => {
   const { user } = useAuth();
   const { cartItemsCount, setIsCartOpen } = useCart();
 
-  // Si déjà connecté en tant que Jema41, rediriger vers dashboard
+  // Si déjà connecté en tant que admin, rediriger vers dashboard
   useEffect(() => {
-    if (user && user.username === 'Jema41' && user.role === 'admin') {
+    if (user && user.username === 'admin' && user.role === 'admin') {
       navigate('/admin/dashboard');
     }
   }, [user, navigate]);
@@ -49,7 +49,7 @@ const AdminGuide = () => {
                     <div className="bg-admin-card/50 rounded p-4 space-y-2 font-mono text-sm">
                       <div>
                         <p className="text-admin-text-secondary">Nom d'utilisateur:</p>
-                        <p className="text-admin-gold font-bold">Jema41</p>
+                        <p className="text-admin-gold font-bold">admin</p>
                       </div>
                       <div>
                         <p className="text-admin-text-secondary">Mot de passe:</p>
@@ -116,7 +116,7 @@ const AdminGuide = () => {
 
           {/* Security Notice */}
           <div className="mt-8 text-center text-sm text-admin-text-secondary/60 px-4">
-            <p>🔒 Panel sécurisé - Seul l'administrateur Jema41 peut accéder à cette interface</p>
+            <p>🔒 Panel sécurisé - Seul l'administrateur admin peut accéder à cette interface</p>
           </div>
         </div>
       </div>

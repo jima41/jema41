@@ -81,16 +81,16 @@ const App = () => {
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/mes-informations" element={<UserProfile />} />
                     <Route path="/admin" element={
-                      <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                      <ProtectedRoute requiredRole="admin">
                         <AdminGuide />
                       </ProtectedRoute>
                     } />
                 
-                {/* Admin Protected Routes - Only Jema41 (admin) */}
+                {/* Admin Protected Routes - Only admin (admin) */}
                 <Route
                   path="/admin/dashboard"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminDashboard />
                       </AdminLayout>
@@ -100,7 +100,7 @@ const App = () => {
                 <Route
                   path="/admin/inventory"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminInventory />
                       </AdminLayout>
@@ -110,7 +110,7 @@ const App = () => {
                 <Route
                   path="/admin/featured"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminFeatured />
                       </AdminLayout>
@@ -120,7 +120,7 @@ const App = () => {
                 <Route
                   path="/admin/clients"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminClients />
                       </AdminLayout>
@@ -130,7 +130,7 @@ const App = () => {
                 <Route
                   path="/admin/orders"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminOrders />
                       </AdminLayout>
@@ -140,7 +140,7 @@ const App = () => {
                 <Route
                   path="/admin/analytics"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminAnalytics />
                       </AdminLayout>
@@ -150,7 +150,7 @@ const App = () => {
                 <Route
                   path="/admin/crm"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminCRM />
                       </AdminLayout>
@@ -160,7 +160,7 @@ const App = () => {
                 <Route
                   path="/admin/abandoned-insights"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminAbandonedInsights />
                       </AdminLayout>
@@ -170,7 +170,7 @@ const App = () => {
                 <Route
                   path="/admin/olfactory-notes"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminOlfactoryNotes />
                       </AdminLayout>
@@ -180,7 +180,7 @@ const App = () => {
                 <Route
                   path="/admin/promo-codes"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminPromoCodes />
                       </AdminLayout>
@@ -190,7 +190,7 @@ const App = () => {
                 <Route
                   path="/admin/scent-id"
                   element={
-                    <ProtectedRoute requiredRole="admin" requiredUsername="Jema41">
+                    <ProtectedRoute requiredRole="admin" >
                       <AdminLayout>
                         <AdminScentIDPage />
                       </AdminLayout>

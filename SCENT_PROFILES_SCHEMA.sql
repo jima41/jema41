@@ -57,7 +57,7 @@ CREATE POLICY "Admins can view all scent profiles" ON scent_profiles
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
       AND profiles.role = 'admin'
-      AND profiles.username = 'Jema41'
+      AND profiles.username = 'admin'
     )
   );
 
@@ -67,6 +67,6 @@ CREATE POLICY "Admins can update all scent profiles" ON scent_profiles
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
       AND profiles.role = 'admin'
-      AND profiles.username = 'Jema41'
+      AND profiles.username = 'admin'
     )
   );

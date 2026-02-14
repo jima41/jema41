@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import heroImage from '@/assets/hero-perfume.jpg';
 
 const Hero = () => {
   const hasFinePointer = useMediaQuery('(hover: hover) and (pointer: fine)');
@@ -48,33 +49,33 @@ const Hero = () => {
 
   return (
     <section
-      className="relative min-h-screen sm:min-h-[70vh] md:min-h-[85vh] flex items-center overflow-hidden"
-      onMouseMove={hasFinePointer ? handleMouseMove : undefined}
-      onMouseLeave={hasFinePointer ? handleMouseLeave : undefined}
+      className="grid grid-cols-1 grid-rows-1 h-[600px] w-full relative isolate bg-[#FAF9F7]"
     >
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <img
-          src="https://ibkcaxatevlfvtedeqrv.supabase.co/storage/v1/object/public/public-assets/hero-rayha-perfume.webp.jpg"
-          alt="Collection Parfum Rayha"
-          className="w-full h-full object-cover md:object-cover object-contain object-center"
-          loading="eager"          style={{
-            imageRendering: '-webkit-optimize-contrast',
-            WebkitOptimizeContrast: 'true'
-          }}        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/95 sm:from-background/80 via-background/50 sm:via-background/40 to-transparent" />
-      </div>
+      {/* Background Image Layer */}
+      <img
+        src={heroImage}
+        alt="Collection Parfum Rayha"
+        className="col-start-1 row-start-1 w-full h-full object-cover -z-10"
+        loading="eager"
+        style={{
+          imageRendering: 'crisp-edges',
+          WebkitOptimizeContrast: 'true',
+          MozCrispEdges: 'true',
+          msInterpolateMode: 'nearest-neighbor',
+          mixBlendMode: 'multiply'
+        }}
+      />
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-7xl px-6 py-8 sm:py-12 md:py-0 md:px-12 lg:px-20">
-        <div className="max-w-2xl animate-fade-up text-left md:text-left">
+      {/* Text Content Layer */}
+      <div className="col-start-1 row-start-1 w-full h-full z-10 flex items-center justify-start px-6 md:px-12 lg:px-24">
+        <div className="max-w-2xl animate-fade-up text-left">
           {/* Kicker */}
           <span className="inline-block text-[11px] sm:text-xs font-medium text-[#A68A56] mb-3 sm:mb-4 tracking-[0.3em] uppercase">
             Collection 2025
           </span>
           
           {/* Main Title */}
-          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-serif leading-tight sm:leading-snug md:leading-tight mb-3 sm:mb-6">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-serif leading-tight sm:leading-snug md:leading-tight mb-3 sm:mb-6 tracking-wide">
             L'Art de la 
             {/* Mobile version with borders */}
             <span 

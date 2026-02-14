@@ -27,7 +27,7 @@ const AdminInventory = () => {
       return;
     }
     
-    if (user.role !== 'admin' || user.username.trim().toLowerCase() !== 'jema41') {
+    if (user.role !== 'admin' || user.username.trim().toLowerCase() !== 'admin') {
       navigate('/');
     }
   }, [user, navigate]);

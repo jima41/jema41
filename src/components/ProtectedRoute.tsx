@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ 
   children, 
   requiredRole = 'admin',
-  requiredUsername = 'Jema41'
+  requiredUsername = 'admin'
 }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -70,7 +70,7 @@ export const ProtectedRoute = ({
             Vous n'avez pas les permissions requises pour accéder à cette section.
           </p>
           <p className="text-xs text-admin-text-secondary mb-6">
-            Seul l'administrateur Jema41 peut accéder à cette interface.
+            Seul l'administrateur admin peut accéder à cette interface.
           </p>
           <a
             href="/"
@@ -93,7 +93,7 @@ export const ProtectedRoute = ({
         <div className="glass-panel border border-admin-border rounded-lg p-8 max-w-md text-center">
           <p className="text-red-400 text-lg font-bold mb-3">❌ Accès Refusé</p>
           <p className="text-admin-text-secondary mb-4">
-            Seul l'administrateur <span className="font-bold text-admin-gold">Jema41</span> peut accéder à cette section.
+            Seul l'administrateur <span className="font-bold text-admin-gold">admin</span> peut accéder à cette section.
           </p>
           <p className="text-xs text-admin-text-secondary mb-6">
             Utilisateur actuel: <span className="font-medium">{user.username}</span>

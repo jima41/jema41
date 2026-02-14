@@ -322,7 +322,7 @@ async function insertProducts() {
     }
     
     console.log('Maintenant:');
-    console.log('  1. Allez sur http://localhost:8081/jema41/');
+    console.log('  1. Allez sur http://localhost:8081/admin/');
     console.log('  2. Les 21 parfums devraient s\'afficher automatiquement');
     console.log('  3. Attendez quelques secondes pour la synchronisation temps réel\n');
     
