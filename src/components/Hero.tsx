@@ -77,14 +77,13 @@ const Hero = () => {
           {/* Main Title */}
           <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-serif leading-tight sm:leading-snug md:leading-tight mb-3 sm:mb-6 tracking-wide">
             L'Art de la 
-            {/* Mobile version with borders */}
+            {/* Mobile version without borders */}
             <span 
               style={{ 
                 backgroundImage: 'linear-gradient(to right, #D4AF37, #FCEEAC, #A68A56)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(-0.75px -0.75px 0 #000) drop-shadow(0.75px -0.75px 0 #000) drop-shadow(-0.75px 0.75px 0 #000) drop-shadow(0.75px 0.75px 0 #000) drop-shadow(0 0.75px 1.5px rgba(0, 0, 0, 0.6))'
               }}
               className="block sm:hidden"
             >
