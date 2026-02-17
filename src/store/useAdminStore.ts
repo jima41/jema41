@@ -189,7 +189,7 @@ interface AdminStoreState {
 
 // Exporter les types olfactifs pour faciliter l'utilisation
 export type { OlfactoryFamily } from '@/lib/olfactory';
-export { classifyPerfume, OLFACTORY_DICTIONARY, getAllNotesFlat, getTeteNoteIds, getCoeurNoteIds, getFondNoteIds } from '@/lib/olfactory';
+export { classifyPerfume, type OlfactoryFamily } from '@/lib/olfactory';
 
 // ============================================================================
 // IMAGE MAPPING
@@ -458,7 +458,7 @@ export const useAdminStore = create<AdminStoreState>()((set, get) => ({
       const defaultProducts = DEFAULT_PRODUCTS.map((product, index) => ({
         ...product,
         id: product.id,
-        families: classifyPerfume(product.scent),
+        families: [], // classifyPerfume(product.scent),
         notes_tete: [],
         notes_coeur: [],
         notes_fond: [],

@@ -11,14 +11,15 @@ import { AlertCircle, TrendingUp, Package, RotateCcw, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 
 const AdminInventory = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { stockItems, updateStockLevel, updateVelocity, deleteProduct } = useStockInventory();
-  const { resetProductsToDefaults, products } = useAdminStore();
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
-  const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
-  const [slideOverMode, setSlideOverMode] = useState<'add' | 'edit'>('add');
+  try {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const { stockItems, updateStockLevel, updateVelocity, deleteProduct } = useStockInventory();
+    const { resetProductsToDefaults, products } = useAdminStore();
+    const isMobile = useMediaQuery('(max-width: 768px)');
+    const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
+    const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+    const [slideOverMode, setSlideOverMode] = useState<'add' | 'edit'>('add');
 
   // Vérification d'accès admin
   useEffect(() => {
@@ -232,7 +233,22 @@ const AdminInventory = () => {
         product={slideOverMode === 'edit' && selectedItem ? products.find(p => p.id === selectedItem.id) || null : null}
       />
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('AdminInventory Error:', error);
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold text-red-500 mb-4">Erreur Inventaire</h1>
+        <p className="text-red-400 mb-4">Une erreur est survenue lors du chargement de l'inventaire.</p>
+        <details className="bg-red-900/20 p-4 rounded border border-red-700">
+          <summary className="cursor-pointer font-medium text-red-400">Détails de l'erreur</summary>
+          <pre className="mt-4 text-sm text-red-300 overflow-auto">
+            {error instanceof Error ? error.message : String(error)}
+          </pre>
+        </details>
+      </div>
+    );
+  }
 };
 
 export default AdminInventory;

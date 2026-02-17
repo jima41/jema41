@@ -48,6 +48,10 @@ const Index = () => {
       
       <main>
         <Hero />
+        {/* Description mobile sous Hero, 2 pouces (env. 64px) au-dessus du quiz olfactif */}
+        <p className="text-xs sm:hidden font-light leading-relaxed text-gray-600 max-w-md mx-auto mt-8 mb-16" style={{marginBottom: '64px'}}>
+          Découvrez notre sélection de parfums d'exception, soigneusement choisis pour éveiller vos sens.
+        </p>
         <SillageQuiz />
         <ProductGrid onAddToCart={handleAddToCart} />
         <Reassurance />

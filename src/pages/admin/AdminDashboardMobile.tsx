@@ -10,6 +10,24 @@ import {
 } from '@/components/ui/tabs';
 import { ProductTable } from '@/components/admin/ProductTable';
 import MobileProductCard from '@/components/admin/MobileProductCard';
+import { ProductSlideOver } from '@/components/admin/ProductSlideOver';
+  // État pour panneau d’ajout/édition produit
+  const [isProductPanelOpen, setIsProductPanelOpen] = useState(false);
+  const [productPanelMode, setProductPanelMode] = useState<'add' | 'edit'>('add');
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  // Ouvre le panneau pour ajouter un produit
+  const handleAddProduct = () => {
+    setProductPanelMode('add');
+    setSelectedProduct(null);
+    setIsProductPanelOpen(true);
+  };
+
+  // Ouvre le panneau pour éditer un produit
+  const handleEditProduct = (item: any) => {
+    setProductPanelMode('edit');
+    setSelectedProduct(item);
+    setIsProductPanelOpen(true);
+  };
 import { ScentRadarChart } from '@/components/admin/ScentRadarChart';
 import { OrderList, UnboxingPersonalization } from '@/components/admin/OrderList';
 import { UnboxingDialog } from '@/components/admin/UnboxingDialog';
@@ -300,7 +318,10 @@ const AdminDashboardMobile = () => {
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-serif font-light text-admin-text-primary">Gestion Produits</h2>
-                <button className="px-4 py-2 bg-admin-gold text-black rounded-xl font-medium text-sm active:scale-95 transition-transform">
+                <button
+                  className="px-4 py-2 bg-admin-gold text-black rounded-xl font-medium text-sm active:scale-95 transition-transform"
+                  onClick={handleAddProduct}
+                >
                   + Nouveau
                 </button>
               </div>
@@ -313,8 +334,7 @@ const AdminDashboardMobile = () => {
                     dragConstraints={{ left: -100, right: 0 }}
                     onDragEnd={(event, info) => {
                       if (info.offset.x < -50) {
-                        // Swipe to edit
-                        console.log('Edit', item.id);
+                        handleEditProduct(item);
                       }
                     }}
                     className="bg-admin-card/50 backdrop-blur-xl rounded-2xl p-4 border border-admin-border/30 relative overflow-hidden"
@@ -344,16 +364,24 @@ const AdminDashboardMobile = () => {
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <button
-                          onClick={() => {/* Toggle featured */}}
-                          className="px-3 py-1 rounded-full text-xs font-medium transition-colors bg-admin-card text-admin-text-secondary"
+                          onClick={() => handleEditProduct(item)}
+                          className="px-3 py-1 rounded-full text-xs font-medium transition-colors bg-admin-card text-admin-text-secondary border border-admin-border hover:bg-admin-gold/10 hover:text-admin-gold"
                         >
-                          Home
+                          Modifier
                         </button>
                       </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
+
+              {/* Panneau d’ajout/édition produit */}
+              <ProductSlideOver
+                isOpen={isProductPanelOpen}
+                onClose={() => setIsProductPanelOpen(false)}
+                mode={productPanelMode}
+                product={productPanelMode === 'edit' && selectedProduct ? selectedProduct : null}
+              />
             </motion.div>
           )}
 

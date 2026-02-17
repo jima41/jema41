@@ -103,12 +103,7 @@ const Hero = () => {
             </span>
           </h1>
           
-          {/* Description - Mobile version */}
-          <p 
-            className="text-xs sm:text-base font-light leading-relaxed text-gray-600 mb-[26rem] sm:mb-8 md:mb-10 max-w-md sm:max-w-none sm:hidden"
-          >
-            Découvrez notre sélection de parfums d'exception, soigneusement choisis pour éveiller vos sens.
-          </p>
+          {/* Description - Mobile version déplacée dans Index.tsx */}
           
           {/* Description - Desktop version without borders */}
           <p className="text-xs sm:text-base md:text-lg font-light leading-relaxed text-gray-600 md:text-foreground mb-6 sm:mb-8 md:mb-10 max-w-md hidden sm:block">

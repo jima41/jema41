@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X, LogOut, User, Settings, ChevronRight, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { useMediaQuery } from '@/hooks/use-media-query';
-import { useIsMounted } from '@/hooks/use-is-mounted';
-import MobileHeader from './MobileHeader';
 
 interface HeaderProps {
   cartItemsCount: number;
@@ -52,8 +49,7 @@ interface NavLinkProps {
 
 const AnimatedNavLink = ({ label, href }: NavLinkProps) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const isActive = location.pathname === href;
+  const isActive = window.location.pathname === href;
 
   const underlineVariants = {
     initial: {
@@ -61,7 +57,7 @@ const AnimatedNavLink = ({ label, href }: NavLinkProps) => {
     },
     hover: {
       scaleX: 1,
-      transition: { duration: 0.3, ease: 'easeOut' },
+      transition: { duration: 0.3 },
     },
   };
 
@@ -87,7 +83,7 @@ const AnimatedNavLink = ({ label, href }: NavLinkProps) => {
         {label}
       </a>
       <motion.div
-        className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-px bg-admin-gold w-full"
+        className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-px bg-[#D4AF37] w-full"
         variants={underlineVariants}
         initial="initial"
         whileHover="hover"
@@ -138,8 +134,7 @@ interface PerfumeDropdownProps {
 
 const PerfumeNavDropdown = ({ isOpen, onToggle, onClose }: PerfumeDropdownProps) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const isActive = location.pathname === '/all-products';
+  const isActive = window.location.pathname === '/all-products';
 
   const underlineVariants = {
     initial: {
@@ -147,7 +142,7 @@ const PerfumeNavDropdown = ({ isOpen, onToggle, onClose }: PerfumeDropdownProps)
     },
     hover: {
       scaleX: 1,
-      transition: { duration: 0.3, ease: 'easeOut' },
+      transition: { duration: 0.3 },
     },
   };
 
@@ -170,7 +165,7 @@ const PerfumeNavDropdown = ({ isOpen, onToggle, onClose }: PerfumeDropdownProps)
         Nos Parfums
       </a>
       <motion.div
-        className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-px bg-admin-gold w-full"
+        className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-px bg-[#D4AF37] w-full"
         variants={underlineVariants}
         initial="initial"
         whileHover="hover"
@@ -206,7 +201,7 @@ const ActionIcon = ({ icon, onClick, badge, title, isActive }: ActionIconProps) 
     >
       <div className="text-[#A68A56]">{icon}</div>
       {badge !== undefined && badge > 0 && (
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-admin-gold text-black text-xs rounded-full flex items-center justify-center font-semibold">
+        <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4AF37] text-black text-xs rounded-full flex items-center justify-center font-semibold">
           {badge}
         </span>
       )}
@@ -225,10 +220,8 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   const [scrollY, setScrollY] = useState(0);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const isMounted = useIsMounted();
-  const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Scroll handling - doit être appelé avant les conditions de rendu
+  // Scroll handling
   useEffect(() => {
     const handleScroll = () => {
       setScrollY(window.scrollY);
@@ -249,11 +242,6 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
     window.addEventListener('scroll', throttledScroll);
     return () => window.removeEventListener('scroll', throttledScroll);
   }, []);
-
-  // Use MobileHeader for mobile devices
-  if (isMobile) {
-    return <MobileHeader cartItemsCount={cartItemsCount} onCartClick={onCartClick} />;
-  }
 
   // Calculate scale and opacity based on scroll
   const isScrolled = scrollY > 40;
@@ -276,14 +264,19 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-50">
+    <header className="sticky top-0 w-full z-[100] bg-white/70 backdrop-blur-md border-b border-gray-100 transition-all duration-300">
       {/* Shipping Bar */}
       <ShippingBar />
 
+      {/* Main Header with Glassmorphism */}
       <motion.div
-        className={`bg-white/80 backdrop-blur-md border-b border-admin-gold/10 transition-all duration-300 ${isScrolled ? 'shadow-sm' : ''}`}
+        className="backdrop-blur-xl border-b transition-all duration-300"
+        style={{
+          backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
+          borderColor: 'rgba(212, 175, 55, 0.2)',
+        }}
         animate={{
-          backgroundColor: `rgba(255, 255, 255, 0.8)`,
+          backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
         }}
       >
         <div className="container mx-auto">
@@ -311,7 +304,11 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
 
             {/* Desktop Navigation - LEFT */}
             <nav className="hidden md:flex items-center gap-8 flex-1">
-              <AnimatedNavLink label="Nos Parfums" href="/all-products" />
+              <PerfumeNavDropdown 
+                isOpen={false} 
+                onToggle={() => {}}
+                onClose={() => {}}
+              />
             </nav>
 
             {/* Logo - CENTER */}
@@ -329,7 +326,7 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                     placeholder="Rechercher..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="mr-2 w-48 md:w-64 px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-admin-gold/30 transition-all"
+                    className="mr-2 w-48 md:w-64 px-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 transition-all"
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.12)',
                       borderColor: 'rgba(212, 175, 55, 0.3)',
@@ -358,33 +355,13 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                 title="Panier"
               />
 
-              {/* Mobile Auth Buttons - Adapted for mobile (kept md:hidden as originally) */}
-              <div className="md:hidden flex items-center gap-2">
-                {!user && (
-                  <>
-                    <Link to="/login">
-                      <button className="px-4 py-2.5 text-sm font-medium text-[#A68A56] border border-admin-gold/40 rounded-lg active:scale-95 transition-all bg-white/80 backdrop-blur-sm">
-                        Connexion
-                      </button>
-                    </Link>
-                    <Link to="/signup">
-                      <button className="px-4 py-2.5 text-sm font-medium text-white bg-admin-gold hover:bg-[#B8952A] active:scale-95 transition-all rounded-lg shadow-sm">
-                        S'inscrire
-                      </button>
-                    </Link>
-                  </>
-                )}
-              </div>
-
               {/* Admin */}
               {user?.role === 'admin' && (
-                <div className="hidden md:block">
-                  <ActionIcon
-                    icon={<Settings strokeWidth={1.5} className="w-5 h-5" />}
-                    onClick={() => navigate('/admin')}
-                    title="Panneau d'Administration"
-                  />
-                </div>
+                <ActionIcon
+                  icon={<Settings strokeWidth={1.5} className="w-5 h-5" />}
+                  onClick={() => navigate('/admin')}
+                  title="Panneau d'Administration"
+                />
               )}
 
               {/* User/Auth Actions */}
@@ -409,8 +386,8 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                       <div className="px-4 py-3 border-b border-border/30">
                         <p className="text-sm font-medium">{user.username}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
-                        {user.role === 'admin' && user.username.trim().toLowerCase() === 'admin' && (
-                          <span className="inline-block mt-1 px-2 py-1 text-xs bg-admin-gold/20 text-admin-gold rounded">
+                        {user.role === 'admin' && (
+                          <span className="inline-block mt-1 px-2 py-1 text-xs bg-[#D4AF37]/20 text-[#D4AF37] rounded">
                             Admin
                           </span>
                         )}
@@ -420,7 +397,7 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                           navigate('/mes-informations');
                           setIsProfileOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-admin-gold"
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-[#D4AF37]"
                       >
                         <Settings className="w-4 h-4" strokeWidth={1.5} />
                         Mes informations
@@ -430,7 +407,7 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                           navigate('/favorites');
                           setIsProfileOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-admin-gold"
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50/20 transition-colors flex items-center gap-2 text-foreground hover:text-[#D4AF37]"
                       >
                         <Heart className="w-4 h-4" strokeWidth={1.5} />
                         Mes coups de coeurs
@@ -485,6 +462,36 @@ const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                   Nos Parfums
                 </button>
               </div>
+
+              {user?.role === 'admin' && (
+                <a
+                  href="/admin"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate('/admin');
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-sm font-medium text-[#D4AF37] py-2"
+                >
+                  Administration
+                </a>
+              )}
+
+              {/* Mobile Auth */}
+              {!user && (
+                <div className="flex flex-col gap-3 pt-4 border-t border-border/20">
+                  <Link to="/login">
+                    <button className="w-full text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
+                      Connexion
+                    </button>
+                  </Link>
+                  <Link to="/signup">
+                    <button className="w-full text-sm font-medium transition-colors duration-200 text-foreground/70 hover:text-foreground">
+                      Inscription
+                    </button>
+                  </Link>
+                </div>
+              )}
             </nav>
           </motion.div>
         )}
