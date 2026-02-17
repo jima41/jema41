@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Header from '@/components/Header';
+// Header rendered globally in App.tsx
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -180,8 +180,7 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
-
+      
       <main className="flex-1 py-8 md:py-16 lg:py-24">
         <div className="container mx-auto max-w-4xl px-4">
             {/* Back Button */}

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { useCartStore } from '@/store/useCartStore';
@@ -10,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useOrderManagement } from '@/store/useAdminStore';
 import type { CartItem } from '@/store/useCartStore';
 
+// Removed Header import
 const Success = () => {
   const navigate = useNavigate();
   const { cartItems, cartItemsCount, setIsCartOpen } = useCart();
@@ -59,7 +59,6 @@ const Success = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
       <main className="flex-1 py-20 md:py-32 flex items-center justify-center">
         <div className="container mx-auto max-w-2xl px-4">

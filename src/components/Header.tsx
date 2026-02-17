@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useCart } from '@/context/CartContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X, LogOut, User, Settings, ChevronRight, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -212,7 +213,20 @@ const ActionIcon = ({ icon, onClick, badge, title, isActive }: ActionIconProps) 
 // ============================================================================
 // MAIN HEADER COMPONENT
 // ============================================================================
-const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
+const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartClick }: HeaderProps) => {
+  // Prefer cart context when available to avoid needing to pass props from many pages
+  let cartItemsCount = propsCartItemsCount;
+  let onCartClick = propsOnCartClick;
+
+  try {
+    const cart = useCart();
+    if (cart) {
+      cartItemsCount = cart.cartItemsCount;
+      onCartClick = () => cart.setIsCartOpen(true);
+    }
+  } catch (err) {
+    // If hooks are not available for some reason, fall back to props
+  }
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

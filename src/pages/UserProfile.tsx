@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Eye, EyeOff, Check } from 'lucide-react';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -104,7 +103,6 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
       <main className="flex-1 py-12 md:py-20">
         <div className="container mx-auto max-w-2xl px-4">

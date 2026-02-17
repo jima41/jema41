@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingCart, Heart, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
 import SimpleOlfactoryDisplay from '@/components/SimpleOlfactoryDisplay';
@@ -166,7 +165,6 @@ const ProductDetail = () => {
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-4">Produit non trouvé</h1>
@@ -206,7 +204,6 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
       <main className="flex-1 py-8 md:py-12 lg:py-16">
         <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-20">

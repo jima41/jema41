@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import Header from '@/components/Header';
+// Header rendered globally in App.tsx
 import Footer from '@/components/Footer';
 import { Shield, KeyRound, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ const AdminGuide = () => {
 
   return (
     <>
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
       <div className="min-h-screen bg-gradient-to-br from-admin-bg via-admin-card to-admin-bg px-4 py-16">
         <div className="max-w-2xl mx-auto">
           {/* Main Card */}

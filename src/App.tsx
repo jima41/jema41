@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { AdminProvider } from "@/context/AdminContext";
 import { AnalyticsProvider } from "@/context/AnalyticsContext";
 import AnnouncementBar from "@/components/AnnouncementBar";
+import Header from "@/components/Header";
 import DataSyncInitializer from "@/components/DataSyncInitializer";
 import UserDataSyncInitializer from "@/components/UserDataSyncInitializer";
 import Index from "./pages/Index";
@@ -59,6 +60,8 @@ const App = () => {
                 <DataSyncInitializer>
                   <UserDataSyncInitializer />
                 <AnnouncementBar />
+                {/* Global Header */}
+                <Header />
                 <HashRouter>
                   <ScrollToTop />
                   <Suspense fallback={

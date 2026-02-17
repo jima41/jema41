@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -75,8 +74,7 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
-
+      
       <main className="flex-1 py-6 md:py-8 lg:py-12 px-4 md:px-6 lg:px-0">
         <div className="container mx-auto max-w-md">
           {/* Breadcrumb */}

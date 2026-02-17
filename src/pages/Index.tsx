@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import SillageQuiz from '@/components/SillageQuiz';
 import ProductGrid from '@/components/ProductGrid';
@@ -41,10 +40,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
-        cartItemsCount={cartItemsCount}
-        onCartClick={() => setIsCartOpen(true)}
-      />
       
       <main>
         <Hero />

@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import { useEffect } from 'react';
@@ -34,7 +33,6 @@ const Favorites = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
 
       <main className="flex-1 py-8 md:py-16">
         <div className="container mx-auto">

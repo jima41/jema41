@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import CartDrawer from '@/components/CartDrawer';
@@ -109,8 +108,7 @@ const AllProducts = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header cartItemsCount={cartItemsCount} onCartClick={() => setIsCartOpen(true)} />
-
+      
       <main className="flex-1 py-6 md:py-8 lg:py-12 px-5 sm:px-6 md:px-12 lg:px-20">
         <div className="mx-auto max-w-7xl">
           {/* Breadcrumb / Back Button */}
