@@ -1,730 +1,417 @@
-import { useCallback, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { RotateCcw, ShoppingBag, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAdminStore } from '@/store/useAdminStore';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, RotateCcw, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAdminStore, type Product } from '@/store/useAdminStore';
+import ProductCard from '@/components/ProductCard';
 import { useCart } from '@/context/CartContext';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import type { OlfactoryFamily } from '@/lib/olfactory';
 
 // ============================================================================
-// TYPES
+// CONSTANTS & DATA
 // ============================================================================
 
-type OlfactoryFamily = 'boisé' | 'frais' | 'épicé' | 'gourmand' | 'floral' | 'oriental' | 'cuiré';
+type Step = 'intro' | 'quiz' | 'loading' | 'results';
 
-type AuraTone = 'gold' | 'fresh' | 'floral' | 'amber' | 'leather' | 'spicy' | 'woody';
-
-interface QuizOption {
-  id: string;
-  title: string;
-  description: string;
-  auraTone: AuraTone;
-}
-
-interface QuizQuestion {
-  id: string;
-  title: string;
-  subtitle: string;
-  options: QuizOption[];
-}
-
-interface AnswerSelection {
-  questionId: string;
-  option: QuizOption;
-}
-
-interface FamilyScore {
-  family: OlfactoryFamily;
-  label: string;
-  value: number;
-  percentage: number;
-}
-
-interface ProductRecommendation {
-  id: string;
-  name: string;
-  brand: string;
-  price: number;
-  image?: string;
-  matchScore: number;
-}
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const FAMILY_LABELS: Record<OlfactoryFamily, string> = {
-  boisé: 'Boisé',
-  frais: 'Frais',
-  épicé: 'Épicé',
-  gourmand: 'Gourmand',
-  floral: 'Floral',
-  oriental: 'Oriental',
-  cuiré: 'Cuiré',
-};
-
-const AURA_COLORS: Record<AuraTone, { core: string; halo: string }> = {
-  gold: { core: 'rgba(212,175,55,0.58)', halo: 'rgba(212,175,55,0.24)' },
-  fresh: { core: 'rgba(155,215,242,0.58)', halo: 'rgba(155,215,242,0.24)' },
-  floral: { core: 'rgba(228,160,205,0.56)', halo: 'rgba(228,160,205,0.24)' },
-  amber: { core: 'rgba(181,110,45,0.62)', halo: 'rgba(181,110,45,0.25)' },
-  leather: { core: 'rgba(92,66,50,0.62)', halo: 'rgba(92,66,50,0.22)' },
-  spicy: { core: 'rgba(177,74,44,0.62)', halo: 'rgba(177,74,44,0.24)' },
-  woody: { core: 'rgba(107,88,69,0.62)', halo: 'rgba(107,88,69,0.24)' },
-};
-
-const QUESTIONS: QuizQuestion[] = [
+const QUESTIONS = [
   {
-    id: 'context',
-    title: "Le Contexte · L'Intention",
-    subtitle: 'Dans quelle situation votre parfum doit-il rayonner ?',
+    id: 1,
+    question: "Quelle intensité recherchez-vous ?",
     options: [
-      { id: 'date', title: 'Rendez-vous galant', description: 'Sillage sensuel, tension douce, proximité.', auraTone: 'floral' },
-      { id: 'board', title: 'Réunion de direction', description: 'Présence nette, crédibilité, impact.', auraTone: 'woody' },
-      { id: 'sea_trip', title: 'Escapade en bord de mer', description: 'Air salin, liberté, lumière.', auraTone: 'fresh' },
-      { id: 'gala', title: 'Soirée d’apparat (Gala)', description: 'Élégance dramatique, aura magistrale.', auraTone: 'amber' },
-      { id: 'comfort', title: 'Moment de réconfort chez soi', description: 'Confort chaud, intimité, douceur.', auraTone: 'gold' },
-    ],
+      { label: "Légère & Aérienne", value: "light" },
+      { label: "Présente & Équilibrée", value: "moderate" },
+      { label: "Intense & Signée", value: "intense" },
+      { label: "Majestueuse & Rare", value: "royal" }
+    ]
   },
   {
-    id: 'opening',
-    title: 'L’Ouverture · Notes de Tête',
-    subtitle: 'Quelle sensation initie votre signature ?',
+    id: 2,
+    question: "Quel moment vous inspire le plus ?",
     options: [
-      { id: 'citrus', title: 'Zestes d’agrumes pressés', description: 'Éclat vif, énergie propre.', auraTone: 'fresh' },
-      { id: 'dew', title: 'Rosée du matin & herbe coupée', description: 'Fraîcheur verte, texture botanique.', auraTone: 'fresh' },
-      { id: 'marine', title: 'Air marin iodé', description: 'Transparence minérale et saline.', auraTone: 'fresh' },
-      { id: 'juicy_fruit', title: 'Fruits juteux & sucrés', description: 'Pulpe lumineuse, gourmandise chic.', auraTone: 'gold' },
-    ],
+      { label: "L'Aube Fraîche", value: "morning" },
+      { label: "Le Zénith Solaire", value: "noon" },
+      { label: "Le Crépuscule Doré", value: "evening" },
+      { label: "La Nuit Profonde", value: "night" }
+    ]
   },
   {
-    id: 'heart',
-    title: 'Le Cœur · Caractère',
-    subtitle: 'Quelle matière signe votre personnalité ?',
+    id: 3,
+    question: "Quelle matière vous touche le plus ?",
     options: [
-      { id: 'white_flowers', title: 'Bouquet de fleurs blanches', description: 'Jasmin, tubéreuse, opulence.', auraTone: 'floral' },
-      { id: 'mystic_rose', title: 'Rose mystique veloutée', description: 'Rose profonde, addictive.', auraTone: 'floral' },
-      { id: 'cool_spices', title: 'Épices froides', description: 'Cardamome, baies roses, tranchant.', auraTone: 'spicy' },
-      { id: 'wild_aromatics', title: 'Aromates sauvages', description: 'Lavande, sauge, énergie verte.', auraTone: 'woody' },
-    ],
-  },
-  {
-    id: 'depth',
-    title: 'La Profondeur · Notes de Fond',
-    subtitle: 'Quel sillage laisse votre empreinte ?',
-    options: [
-      { id: 'precious_woods', title: 'Bois précieux', description: 'Santal, cèdre, noblesse sèche.', auraTone: 'woody' },
-      { id: 'warm_amber', title: 'Ambre chaud & résines', description: 'Chaleur dense, profondeur noble.', auraTone: 'amber' },
-      { id: 'smoked_leather', title: 'Cuir tanné & fumé', description: 'Texture sombre, chic absolu.', auraTone: 'leather' },
-      { id: 'white_musks', title: 'Muscs blancs cotonneux', description: 'Seconde peau, douceur lumineuse.', auraTone: 'gold' },
-    ],
-  },
-  {
-    id: 'temperament',
-    title: 'Le Tempérament · Intensité',
-    subtitle: 'Quel niveau de projection recherchez-vous ?',
-    options: [
-      { id: 'soft_trail', title: 'Un murmure discret', description: 'Intime, élégant, peau à peau.', auraTone: 'fresh' },
-      { id: 'elegant_presence', title: 'Une présence élégante', description: 'Impact maîtrisé, allure nette.', auraTone: 'gold' },
-      { id: 'bold_signature', title: 'Une signature inoubliable', description: 'Puissance assumée, trace longue.', auraTone: 'amber' },
-    ],
-  },
-  {
-    id: 'style',
-    title: 'L’Esprit · Style',
-    subtitle: 'Quelle allure raconte le mieux votre identité ?',
-    options: [
-      { id: 'classic', title: 'Intemporel & Classique', description: 'Structure pure, élégance durable.', auraTone: 'woody' },
-      { id: 'modern_bold', title: 'Moderne & Audacieux', description: 'Contrastes marqués, effet couture.', auraTone: 'spicy' },
-      { id: 'bohemian', title: 'Bohème & Naturel', description: 'Organique, libre, sensuel.', auraTone: 'floral' },
-    ],
-  },
+      { label: "Fleurs Blanches", value: "floral" },
+      { label: "Bois Précieux", value: "woody" },
+      { label: "Épices Chaudes", value: "spicy" },
+      { label: "Vanille & Ambre", value: "gourmand" }
+    ]
+  }
 ];
 
-const SCORE_RULES: Record<string, Partial<Record<OlfactoryFamily, number>>> = {
-  date: { oriental: 3, cuiré: 2, épicé: 1 },
-  board: { boisé: 3, épicé: 2, cuiré: 1 },
-  sea_trip: { frais: 4, floral: 1 },
-  gala: { oriental: 3, épicé: 2, cuiré: 1 },
-  comfort: { gourmand: 3, boisé: 1, floral: 1 },
-
-  citrus: { frais: 4, floral: 1 },
-  dew: { frais: 3, floral: 2 },
-  marine: { frais: 4, boisé: 1 },
-  juicy_fruit: { gourmand: 4, floral: 1 },
-
-  white_flowers: { floral: 4, oriental: 1 },
-  mystic_rose: { floral: 3, oriental: 2 },
-  cool_spices: { épicé: 4, boisé: 1 },
-  wild_aromatics: { frais: 2, boisé: 2, épicé: 1 },
-
-  precious_woods: { boisé: 4, épicé: 1 },
-  warm_amber: { oriental: 4, gourmand: 1 },
-  smoked_leather: { cuiré: 4, boisé: 2, épicé: 1 },
-  white_musks: { floral: 2, frais: 2, oriental: 1 },
-
-  soft_trail: { frais: 2, floral: 2, boisé: 1 },
-  elegant_presence: { boisé: 2, floral: 1, oriental: 1, épicé: 1 },
-  bold_signature: { oriental: 3, cuiré: 2, épicé: 2 },
-
-  classic: { boisé: 2, floral: 2, oriental: 1 },
-  modern_bold: { épicé: 2, cuiré: 2, oriental: 2 },
-  bohemian: { frais: 2, floral: 2, gourmand: 1, boisé: 1 },
-};
-
-const FAMILY_SYNONYMS: Record<OlfactoryFamily, string[]> = {
-  boisé: ['boise', 'boisé', 'woody'],
-  frais: ['frais', 'fresh', 'aquatique', 'frais/aquatique'],
-  épicé: ['epice', 'épicé', 'spicy'],
-  gourmand: ['gourmand'],
-  floral: ['floral', 'fleur'],
-  oriental: ['oriental', 'ambre', 'amber'],
-  cuiré: ['cuire', 'cuiré', 'leather'],
-};
-
 // ============================================================================
-// HELPERS
+// ANIMATIONS & SUB-COMPONENTS
 // ============================================================================
 
-function normalizeText(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
-
-function createEmptyScores(): Record<OlfactoryFamily, number> {
-  return {
-    boisé: 0,
-    frais: 0,
-    épicé: 0,
-    gourmand: 0,
-    floral: 0,
-    oriental: 0,
-    cuiré: 0,
-  };
-}
-
-function calculateResults(answers: AnswerSelection[]) {
-  const scores = createEmptyScores();
-
-  answers.forEach((answer) => {
-    const rule = SCORE_RULES[answer.option.id];
-    if (!rule) return;
-
-    (Object.keys(rule) as OlfactoryFamily[]).forEach((familyKey) => {
-      scores[familyKey] += rule[familyKey] ?? 0;
-    });
-  });
-
-  const sortedFamilies = (Object.keys(scores) as OlfactoryFamily[])
-    .map((family) => ({ family, value: scores[family] }))
-    .sort((a, b) => b.value - a.value);
-
-  const dominantFamily = sortedFamilies[0]?.family ?? 'boisé';
-
-  return {
-    scores,
-    dominantFamily,
-    sortedFamilies,
-  };
-}
-
-function AuraBlob({ tone }: { tone: AuraTone }) {
-  const aura = AURA_COLORS[tone];
-
+const SprayBurst = ({ onComplete }: { onComplete: () => void }) => {
   return (
-    <div className="relative mx-auto h-40 w-40 sm:h-48 sm:w-48 md:h-56 md:w-56">
+    <motion.div
+      className="absolute inset-0 z-[50] flex items-center justify-center pointer-events-none"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onAnimationComplete={onComplete}
+    >
+      {/* Subtle Mist Flash */}
       <motion.div
-        className="absolute inset-0 rounded-full"
-        animate={{
-          opacity: [0.25, 0.45, 0.25],
-          scale: [1, 1.1, 1],
-          background: [`radial-gradient(circle, ${aura.halo}, transparent 70%)`],
-        }}
-        transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ filter: 'blur(8px)', willChange: 'transform, opacity' }}
+        className="absolute w-full h-full bg-white/10 blur-3xl"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.5, 0] }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       />
-
-      <motion.div
-        className="absolute inset-[14%]"
-        animate={{
-          borderRadius: [
-            '44% 56% 62% 38% / 38% 45% 55% 62%',
-            '52% 48% 36% 64% / 62% 44% 56% 38%',
-            '40% 60% 56% 44% / 40% 60% 40% 60%',
-            '44% 56% 62% 38% / 38% 45% 55% 62%',
-          ],
-          scale: [1, 1.04, 0.97, 1],
-          background: [
-            `radial-gradient(circle at 32% 35%, rgba(255,255,255,0.35), ${aura.core})`,
-            `radial-gradient(circle at 62% 48%, rgba(255,255,255,0.28), ${aura.core})`,
-            `radial-gradient(circle at 45% 30%, rgba(255,255,255,0.33), ${aura.core})`,
-          ],
-        }}
-        transition={{ duration: 6.8, repeat: Infinity, ease: 'easeInOut' }}
-        style={{
-          boxShadow: '0 0 38px rgba(212,175,55,0.22)',
-          willChange: 'transform, border-radius, background',
-        }}
-      />
-    </div>
+      
+      {/* Fine Golden Particles */}
+      {[...Array(12)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-[#D4AF37]"
+          style={{ width: Math.random() * 2 + 'px', height: Math.random() * 2 + 'px' }}
+          initial={{ x: 0, y: 0, opacity: 0 }}
+          animate={{ 
+            x: (Math.random() - 0.5) * 600, 
+            y: (Math.random() - 0.5) * 400,
+            opacity: [0, 1, 0],
+            scale: [0, 1.5, 0]
+          }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        />
+      ))}
+    </motion.div>
   );
-}
+};
 
-function GoldenSwirl() {
+const FillingBottle = ({ onComplete }: { onComplete: () => void }) => {
   return (
-    <div className="relative mx-auto h-48 w-48 sm:h-56 sm:w-56">
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
-        style={{
-          border: '1px solid rgba(212,175,55,0.25)',
-          borderTopColor: 'rgba(212,175,55,0.9)',
-          willChange: 'transform',
-        }}
-      />
-      <motion.div
-        className="absolute inset-[18%] rounded-full"
-        animate={{ rotate: -360 }}
-        transition={{ duration: 3.2, repeat: Infinity, ease: 'linear' }}
-        style={{
-          border: '1px solid rgba(212,175,55,0.16)',
-          borderTopColor: 'rgba(212,175,55,0.75)',
-          willChange: 'transform',
-        }}
-      />
-
-      {Array.from({ length: 16 }).map((_, index) => {
-        const angle = (index / 16) * Math.PI * 2;
-        const distance = 72 + ((index % 4) * 8);
-        return (
+    <div className="flex flex-col items-center justify-center h-full py-8">
+      <div className="relative w-12 h-20">
+        <div className="absolute inset-0 overflow-hidden">
+          <svg viewBox="0 0 100 160" className="w-full h-full absolute z-20">
+            <path
+              d="M30 10 H70 V30 H90 V150 H10 V30 H30 V10 Z"
+              fill="none"
+              stroke="#D4AF37"
+              strokeWidth="1"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
           <motion.div
-            key={index}
-            className="absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
-            animate={{
-              x: [Math.cos(angle) * (distance - 10), Math.cos(angle) * (distance + 14)],
-              y: [Math.sin(angle) * (distance - 10), Math.sin(angle) * (distance + 14)],
-              opacity: [0.25, 0.9, 0.25],
-              scale: [0.8, 1.2, 0.8],
-            }}
-            transition={{ duration: 2 + (index % 4) * 0.25, repeat: Infinity, ease: 'easeInOut' }}
-            style={{
-              background: '#D4AF37',
-              boxShadow: '0 0 10px rgba(212,175,55,0.6)',
-              willChange: 'transform, opacity',
-            }}
+            className="absolute bottom-0 left-0 right-0 bg-[#D4AF37]/80 z-10"
+            initial={{ height: "0%" }}
+            animate={{ height: "85%" }}
+            transition={{ duration: 1.8, ease: "easeInOut" }}
+            onAnimationComplete={() => setTimeout(onComplete, 400)}
+            style={{ width: '80%', left: '10%', bottom: '5%' }}
           />
-        );
-      })}
+        </div>
+      </div>
+      <motion.p 
+        className="mt-4 font-serif text-xs text-[#D4AF37]/70 italic tracking-wide"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 0.5, 1] }}
+        transition={{ duration: 2 }}
+      >
+        Création de votre accord...
+      </motion.p>
     </div>
   );
-}
+};
 
 // ============================================================================
-// COMPONENT
+// MAIN COMPONENT
 // ============================================================================
 
-export default function SillageQuiz() {
-  const products = useAdminStore((state) => state.products);
-  const navigate = useNavigate();
+const DiagnosticRitual = () => {
+  const [step, setStep] = useState<Step>('intro');
+  const [isSpraying, setIsSpraying] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
+  
+  const { products, isInitialized, initializeProducts } = useAdminStore();
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
-  const [started, setStarted] = useState(false);
-  const [phase, setPhase] = useState<'quiz' | 'alchemy' | 'result'>('quiz');
-  const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<AnswerSelection[]>([]);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [auraTone, setAuraTone] = useState<AuraTone>('gold');
+  useEffect(() => {
+    if (!isInitialized) {
+      initializeProducts();
+    }
+  }, [isInitialized, initializeProducts]);
 
-  const question = QUESTIONS[stepIndex];
-  const totalSteps = QUESTIONS.length;
+  const handleStart = () => {
+    setIsSpraying(true);
+    setTimeout(() => {
+        setStep('quiz');
+        setTimeout(() => setIsSpraying(false), 600); 
+    }, 200);
+  };
 
-  const resultData = useMemo(() => calculateResults(answers), [answers]);
+  const handleRestart = () => {
+    setStep('intro');
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setRecommendations([]);
+  };
 
-  const topFamilies = useMemo<FamilyScore[]>(() => {
-    const total = resultData.sortedFamilies.reduce((sum, item) => sum + item.value, 0) || 1;
+  const calculateRecommendations = (finalAnswers: Record<number, string>) => {
+    // Logic based on Q3 (Matter) mainly
+    const matter = finalAnswers[3];
+    let family: OlfactoryFamily | null = null;
 
-    return resultData.sortedFamilies.slice(0, 3).map((item) => ({
-      family: item.family,
-      label: FAMILY_LABELS[item.family],
-      value: item.value,
-      percentage: Math.round((item.value / total) * 100),
-    }));
-  }, [resultData]);
+    if (matter === 'floral') family = 'Floral';
+    else if (matter === 'woody') family = 'Boisé';
+    else if (matter === 'spicy') family = 'Épicé';
+    else if (matter === 'gourmand') family = 'Gourmand'; // Could also map to Oriental
 
-  const selectedSituation = useMemo(() => {
-    const contextAnswer = answers.find((item) => item.questionId === 'context');
-    return contextAnswer?.option.title ?? 'style personnel';
-  }, [answers]);
+    // Fallback or refinement based on Q2 (Moment)
+    // if Q2 is 'morning' -> maybe 'Frais/Aquatique' or lighter floral?
+    // if Q2 is 'night' -> Oriental / Intense
+    
+    if (finalAnswers[2] === 'morning' && matter === 'floral') {
+        // Maybe check if we have enough products, otherwise stick to floral
+    }
 
-  const recommendedProducts = useMemo<ProductRecommendation[]>(() => {
-    const inStock = products.filter((product) => product.stock > 0);
-    if (inStock.length === 0) return [];
+    let matching = products.filter(p => 
+        family && p.families && p.families.includes(family)
+    );
 
-    const topFamilyIds = topFamilies.map((family) => family.family);
-
-    const scored = inStock
-      .map((product) => {
-        const normalizedFamilies = (product.families || []).map((family) => normalizeText(String(family)));
-        const searchBlob = `${normalizedFamilies.join(' ')} ${normalizeText(product.scent || '')} ${normalizeText(product.category || '')}`;
-
-        let matchScore = 0;
-
-        topFamilyIds.forEach((family, index) => {
-          const aliases = FAMILY_SYNONYMS[family];
-          if (aliases.some((alias) => searchBlob.includes(normalizeText(alias)))) {
-            matchScore += index === 0 ? 10 : index === 1 ? 6 : 4;
-          }
-        });
-
-        if (product.notes_tete?.length || product.notes_coeur?.length || product.notes_fond?.length) {
-          matchScore += 1;
+    if (matching.length === 0 && family) {
+        matching = products.filter(p => p.scent && p.scent.toLowerCase().includes(family!.toLowerCase()));
+    }
+    
+    // If we still have no matches (or family was null), try to map from Q1/Q2
+    if (matching.length === 0) {
+        // Fallback random or specific logic
+        // E.g. "morning" -> Frais
+        if (finalAnswers[2] === 'morning') {
+             matching = products.filter(p => p.families && p.families.includes('Frais/Aquatique'));
         }
+    }
+    
+    // Fallback if absolutely nothing found
+    if (matching.length === 0) {
+        matching = products; 
+    }
 
-        return {
-          id: product.id,
-          name: product.name,
-          brand: product.brand,
-          price: product.price,
-          image: product.image || product.image_url,
-          matchScore,
-        };
-      })
-      .filter((product) => product.matchScore > 0)
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 3);
+    // Select 3 random
+    const shuffled = [...matching].sort(() => 0.5 - Math.random());
+    setRecommendations(shuffled.slice(0, 3));
+  };
 
-    if (scored.length > 0) return scored;
+  const handleAnswer = (value: string) => {
+    const newAnswers = { ...answers, [QUESTIONS[currentQuestionIndex].id]: value };
+    setAnswers(newAnswers);
 
-    return inStock.slice(0, 3).map((fallback, index) => ({
-      id: fallback.id,
-      name: fallback.name,
-      brand: fallback.brand,
-      price: fallback.price,
-      image: fallback.image || fallback.image_url,
-      matchScore: 3 - index,
-    }));
-  }, [products, topFamilies]);
+    if (currentQuestionIndex < QUESTIONS.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+        calculateRecommendations(newAnswers);
+        setStep('loading');
+    }
+  };
 
-  const handleRestart = useCallback(() => {
-    setStarted(false);
-    setPhase('quiz');
-    setStepIndex(0);
-    setAnswers([]);
-    setSelectedOption(null);
-    setAuraTone('gold');
-  }, []);
+  const handleAddToCart = (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (product) {
+      if (product.stock === 0) {
+        toast.error('Ce produit est actuellement en rupture de stock');
+        return;
+      }
+      addToCart({
+        id: product.id,
+        name: product.name,
+        brand: product.brand,
+        price: product.price,
+        image: product.image || product.image_url || '',
+        scent: product.scent,
+        category: product.category || 'mixte'
+      });
+      toast.success('Ajouté au panier');
+    }
+  };
 
-  const handleAnswer = useCallback(
-    (option: QuizOption, index: number) => {
-      if (selectedOption !== null || !question) return;
-
-      setSelectedOption(index);
-      setAuraTone(option.auraTone);
-
-      const currentQuestionId = question.id;
-
-      setTimeout(() => {
-        setAnswers((prev) => [...prev, { questionId: currentQuestionId, option }]);
-        setSelectedOption(null);
-
-        if (stepIndex < totalSteps - 1) {
-          setStepIndex((prev) => prev + 1);
-          return;
-        }
-
-        setPhase('alchemy');
-        setTimeout(() => {
-          setPhase('result');
-          setStepIndex(totalSteps);
-        }, 1900);
-      }, 260);
-    },
-    [question, selectedOption, stepIndex, totalSteps],
-  );
+  // Hauteur fixe et contenue pour éviter l'effet "massif", sauf en mode results où on a besoin de place
+  const containerHeight = step === 'results' ? 'min-h-[600px]' : (step === 'intro' ? 'min-h-[160px]' : 'min-h-[380px]');
 
   return (
-    <section className="relative overflow-hidden bg-background py-12 sm:py-14 md:py-20">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_50%_15%,rgba(212,175,55,0.28),transparent_62%)]" />
-
-      <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-12 lg:px-20">
+    <div className="w-full flex justify-center px-4 md:px-0 my-12 animate-fade-up">
+       <motion.div
+        className={`relative w-full max-w-5xl bg-[#0a0a0a] rounded-sm overflow-hidden border border-white/5 shadow-2xl transition-all duration-700 ease-[0.22, 1, 0.36, 1] ${containerHeight}`}
+        layout
+      >
         <AnimatePresence mode="wait">
-          {!started && (
-            <motion.div
-              key="intro"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.45 }}
-              className="mx-auto max-w-2xl text-center"
-            >
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-admin-gold/20 bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-admin-gold">
-                <Sparkles className="h-4 w-4" />
-                Diagnostic Olfactif Haute Couture
-              </div>
-
-              <h2 className="font-serif text-3xl leading-tight text-foreground sm:text-4xl md:text-5xl">
-                Une expérience immersive,
-                <br />
-                pensée comme un rituel.
-              </h2>
-
-              <p className="mx-auto mt-4 max-w-xl font-montserrat text-sm font-light leading-relaxed text-muted-foreground sm:text-base">
-                Votre profil est calculé sur 7 familles olfactives puis relié à des parfums réels disponibles en stock.
-              </p>
-
-              <div className="mt-8 flex justify-center">
-                <AuraBlob tone={auraTone} />
-              </div>
-
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setStarted(true)}
-                className="mt-8 min-h-12 rounded-xl border-[0.5px] border-admin-gold/20 bg-white/5 px-7 py-3 font-montserrat text-xs uppercase tracking-[0.2em] text-admin-gold backdrop-blur-lg transition-all duration-500 ease-in-out hover:border-admin-gold hover:bg-white/10"
-              >
-                Lancer le diagnostic
-              </motion.button>
-            </motion.div>
-          )}
-
-          {started && phase === 'quiz' && question && (
-            <motion.div
-              key={question.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.45, ease: 'easeInOut' }}
-              className="mx-auto max-w-3xl"
-            >
-              <div className="mb-6 flex items-center justify-between gap-3">
-                <span className="font-montserrat text-[11px] font-light uppercase tracking-[0.18em] text-muted-foreground">
-                  Étape {stepIndex + 1} / {totalSteps}
-                </span>
-                <div className="h-1.5 w-40 overflow-hidden rounded-full bg-foreground/10 sm:w-56">
-                  <motion.div
-                    className="h-full rounded-full bg-admin-gold"
-                    initial={false}
-                    animate={{ width: `${((stepIndex + 1) / totalSteps) * 100}%` }}
-                    transition={{ duration: 0.35, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-8 text-center">
-                <AuraBlob tone={auraTone} />
-                <h3 className="mt-6 font-serif text-2xl text-foreground sm:text-3xl">{question.title}</h3>
-                <p className="mx-auto mt-2 max-w-xl font-montserrat text-sm font-light text-muted-foreground sm:text-base">
-                  {question.subtitle}
-                </p>
-              </div>
-
-              <motion.div
-                className="grid grid-cols-1 gap-3 sm:gap-4"
-                variants={{ show: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
-                initial="hidden"
-                animate="show"
-              >
-                {question.options.map((option, index) => {
-                  const isActive = selectedOption === index;
-
-                  return (
-                    <motion.button
-                      key={option.id}
-                      variants={{
-                        hidden: { opacity: 0, y: 12, filter: 'blur(8px)' },
-                        show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: 'easeOut' } },
-                      }}
-                      whileHover={
-                        selectedOption === null
-                          ? {
-                              borderColor: 'rgba(212,175,55,0.5)',
-                              boxShadow: '0 0 20px rgba(212,175,55,0.2), inset 0 1px 1px rgba(255,255,255,0.06)',
-                            }
-                          : undefined
-                      }
-                      whileTap={selectedOption === null ? { scale: 0.95 } : undefined}
-                      disabled={selectedOption !== null}
-                      onClick={() => handleAnswer(option, index)}
-                      className={`relative w-full overflow-hidden rounded-2xl border-[0.5px] p-4 text-left backdrop-blur-xl transition-all duration-300 ease-in-out sm:p-5 min-h-[100px] sm:min-h-[88px] active:scale-95 ${
-                        isActive
-                          ? 'border-admin-gold bg-white/10 scale-[0.98]'
-                          : 'border-white/10 bg-white/5'
-                      }`}
-                      style={{
-                        willChange: 'transform, box-shadow, filter',
-                        boxShadow: isActive
-                          ? '0 0 24px rgba(212,175,55,0.28), inset 0 1px 1px rgba(255,255,255,0.06)'
-                          : 'inset 0 1px 1px rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      {/* Radial gold glow on selection */}
-                      <motion.span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute -inset-10 rounded-full"
-                        initial={{ opacity: 0, scale: 0.7 }}
-                        animate={{ opacity: isActive ? 0.32 : 0, scale: isActive ? 1 : 0.8 }}
-                        transition={{ duration: 0.55, ease: 'easeOut' }}
-                        style={{
-                          background: 'radial-gradient(circle, rgba(212,175,55,0.35), transparent 65%)',
-                        }}
-                      />
-
-                      <p className="relative z-10 font-montserrat text-lg tracking-wide text-admin-gold sm:text-xl">{option.title}</p>
-                      <p className="relative z-10 mt-1 font-montserrat text-sm font-light tracking-wide leading-relaxed text-muted-foreground">
-                        {option.description}
-                      </p>
-                    </motion.button>
-                  );
-                })}
-              </motion.div>
-            </motion.div>
-          )}
-
-          {started && phase === 'alchemy' && (
-            <motion.div
-              key="alchemy"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.45 }}
-              className="mx-auto flex min-h-[420px] max-w-3xl items-center justify-center rounded-3xl border border-admin-gold/20 bg-black px-6"
-            >
-              <div className="text-center">
-                <GoldenSwirl />
-                <p className="mt-8 font-serif text-2xl text-admin-gold sm:text-3xl">
-                  L'alchimie opère...
-                </p>
-                <p className="mt-2 font-montserrat text-sm font-light text-white/70 sm:text-base">
-                  votre signature se dessine.
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {started && phase === 'result' && (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.45, ease: 'easeInOut' }}
-              className="mx-auto max-w-5xl"
-            >
-              <div className="text-center">
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-admin-gold/20 bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-admin-gold">
-                  <Sparkles className="h-4 w-4" />
-                  Signature Royale
-                </div>
-
-                <h3 className="font-serif text-3xl text-foreground sm:text-4xl md:text-5xl">
-                  Votre Aura est {FAMILY_LABELS[resultData.dominantFamily]}
-                </h3>
-                <p className="mx-auto mt-3 max-w-2xl font-montserrat text-sm font-light text-muted-foreground sm:text-base">
-                  Analyse pondérée sur 7 familles olfactives, connectée à votre intention et à des parfums réellement disponibles.
-                </p>
-              </div>
-
-              <div className="mt-8 grid grid-cols-1 gap-3 sm:gap-4">
-                {topFamilies.map((family, index) => (
-                  <motion.div
-                    key={family.family}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.08 }}
-                    className="rounded-2xl border-[0.5px] border-admin-gold/20 bg-white/5 p-4 backdrop-blur-lg"
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="font-serif text-xl text-admin-gold">{family.label}</p>
-                      <p className="font-montserrat text-sm font-light text-foreground">{family.percentage}%</p>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
-                      <motion.div
-                        className="h-full rounded-full bg-admin-gold"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${family.percentage}%` }}
-                        transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
-                      />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              <div className="mt-10">
-                <h4 className="mb-4 text-center font-serif text-2xl text-foreground">Vos 3 parfums recommandés</h4>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {recommendedProducts.map((product, index) => (
-                    <motion.article
-                      key={product.id}
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 + index * 0.12 }}
-                      className="group cursor-pointer overflow-hidden rounded-2xl border-[0.5px] border-admin-gold/20 bg-white/5 backdrop-blur-lg transition-all duration-500 hover:border-admin-gold/50 hover:shadow-[0_0_20px_rgba(212,175,55,0.15)]"
-                      onClick={() => navigate(`/product/${product.id}`)}
-                    >
-                      <div className="relative aspect-square overflow-hidden bg-secondary/20">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="h-full w-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-admin-gold">✦</div>
-                        )}
-
-                        {/* Add to Cart overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
-                          <motion.button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart({
-                                id: product.id,
-                                productId: product.id,
-                                name: product.name,
-                                brand: product.brand || '',
-                                price: product.price,
-                                image: product.image || '',
-                              } as any);
-                            }}
-                            className="rounded-full border border-white/40 p-4 min-w-[48px] min-h-[48px] text-white transition-all duration-300 hover:border-admin-gold/70 hover:text-admin-gold active:scale-95"
-                            whileHover={{ scale: 1.08, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            aria-label="Ajouter au panier"
-                          >
-                            <ShoppingBag strokeWidth={1.5} className="h-6 w-6" />
-                          </motion.button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 p-4">
-                        <p className="font-montserrat text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{product.brand}</p>
-                        <p className="font-serif text-xl text-foreground transition-colors duration-300 group-hover:text-admin-gold">{product.name}</p>
-                        <p className="font-montserrat text-sm font-light text-admin-gold">{product.price.toFixed(2)} €</p>
-                        <p className="font-montserrat text-xs font-light text-muted-foreground">
-                          Recommandé pour votre {selectedSituation}.
-                        </p>
-                      </div>
-                    </motion.article>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-10 text-center">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleRestart}
-                  className="inline-flex min-h-[48px] items-center gap-2 rounded-xl border border-admin-gold/20 bg-white/5 px-5 py-3 font-montserrat text-sm font-light text-foreground backdrop-blur-md transition-all duration-300 ease-in-out hover:border-admin-gold active:scale-95"
+            
+            {/* --- STEP 1: INTRO (Bandeau Luxe) --- */}
+            {step === 'intro' && (
+                <motion.div
+                    key="intro"
+                    className="flex flex-col md:flex-row items-center justify-between px-8 py-10 md:py-8 gap-6 md:gap-12"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.3 } }}
                 >
-                  <RotateCcw className="h-5 w-5" />
-                  Refaire le diagnostic
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
+                    <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3">
+                        <span className="text-[10px] font-medium tracking-[0.25em] text-amber-200/60 uppercase">
+                            Diagnostic Olfactif Haute Couture
+                        </span>
+                        
+                        <h2 className="font-serif text-2xl md:text-3xl text-[#F5F5F0] font-light leading-tight">
+                            Trouvez votre signature
+                        </h2>
+                        
+                        <p className="text-xs text-neutral-500 font-light tracking-wide max-w-md">
+                            Une expérience immersive pour révéler le parfum qui capture votre essence.
+                        </p>
+                    </div>
+
+                    <div className="flex-shrink-0">
+                        <Button
+                            onClick={handleStart}
+                            className="bg-transparent border border-amber-200/30 text-amber-100 hover:bg-amber-900/10 hover:border-amber-200/60 hover:text-[#D4AF37] px-8 py-6 h-auto rounded-sm font-sans text-xs font-medium tracking-[0.15em] uppercase transition-all duration-500 ease-out group"
+                        >
+                            Commencer l'expérience
+                            <span className="ml-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-500">→</span>
+                        </Button>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* --- STEP 2: QUIZ --- */}
+            {step === 'quiz' && (
+                <motion.div
+                    key="quiz"
+                    className="absolute inset-0 flex flex-col items-center justify-center p-8 md:p-12 bg-[#0a0a0a]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                     <div className="w-full max-w-2xl">
+                        <div className="flex justify-center mb-8">
+                            <span className="text-[10px] text-neutral-600 tracking-[0.2em] uppercase font-light">
+                                Question {currentQuestionIndex + 1} <span className="text-neutral-800 mx-2">/</span> {QUESTIONS.length}
+                            </span>
+                        </div>
+                        
+                        <h3 className="font-serif text-xl md:text-2xl text-[#F5F5F0] mb-10 text-center font-light">
+                            {QUESTIONS[currentQuestionIndex].question}
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {QUESTIONS[currentQuestionIndex].options.map((option) => (
+                                <button
+                                    key={option.value}
+                                    onClick={() => handleAnswer(option.value)}
+                                    className="p-5 rounded-sm border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-900/30 text-left transition-all duration-300 group active:scale-[0.99]"
+                                >
+                                    <span className="flex justify-between items-center w-full">
+                                        <span className="block text-xs md:text-sm text-neutral-400 group-hover:text-amber-100/90 font-light tracking-wide transition-colors">
+                                            {option.label}
+                                        </span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-800 group-hover:bg-[#D4AF37] transition-colors duration-500" />
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                     </div>
+                </motion.div>
+            )}
+
+            {/* --- STEP 3: LOADING --- */}
+            {step === 'loading' && (
+                <motion.div
+                    key="loading"
+                    className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    <FillingBottle onComplete={() => setStep('results')} />
+                </motion.div>
+            )}
+
+            {/* --- STEP 4: RESULTS --- */}
+            {step === 'results' && (
+                <motion.div
+                    key="results"
+                    className="absolute inset-0 flex flex-col items-center justify-start p-8 md:p-12 bg-[#0a0a0a] overflow-y-auto"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8 }}
+                >
+                    <div className="text-center mb-10 mt-4">
+                        <span className="text-[9px] text-amber-200/50 tracking-[0.25em] uppercase mb-4 block">
+                            Votre signature olfactive
+                        </span>
+                        <h2 className="font-serif text-2xl md:text-3xl text-[#F5F5F0] mb-4 font-light">
+                            Sélection Exclusive
+                        </h2>
+                        <p className="font-sans text-xs text-neutral-500 max-w-lg mx-auto font-light leading-relaxed tracking-wide">
+                            Basé sur vos préférences pour {answers[3] === 'floral' ? 'les fleurs blanches' : answers[3] === 'woody' ? 'les bois précieux' : answers[3] === 'spicy' ? 'les épices' : 'la vanille'}, voici nos recommandations.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl mx-auto mb-10">
+                        {recommendations.map((product, index) => (
+                             <motion.div
+                                key={product.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                className="bg-white rounded-xl p-2 shadow-lg"
+                             >
+                                <ProductCard
+                                    id={product.id}
+                                    name={product.name}
+                                    brand={product.brand}
+                                    price={product.price}
+                                    image={product.image || product.image_url || ''}
+                                    scent={product.scent}
+                                    stock={product.stock}
+                                    notes={product.notes}
+                                    notes_tete={product.notes_tete}
+                                    notes_coeur={product.notes_coeur}
+                                    notes_fond={product.notes_fond}
+                                    families={product.families}
+                                    onAddToCart={handleAddToCart}
+                                />
+                             </motion.div>
+                        ))}
+                        {recommendations.length === 0 && (
+                             <div className="col-span-3 text-center text-neutral-500 text-sm">
+                                 Aucun résultat trouvé pour cette combinaison.
+                             </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-center pb-8">
+                        <Button 
+                            onClick={handleRestart} 
+                            variant="outline" 
+                            className="border-white/10 text-neutral-400 hover:text-white hover:bg-white/5 px-6 py-4 rounded-sm bg-transparent text-[10px] tracking-widest uppercase"
+                        >
+                            <RotateCcw className="w-3 h-3 mr-2" />
+                            Recommencer
+                        </Button>
+                    </div>
+                </motion.div>
+            )}
+
         </AnimatePresence>
-      </div>
-    </section>
+
+        {isSpraying && <SprayBurst onComplete={() => {}} />}
+      </motion.div>
+    </div>
   );
-}
+};
+
+export default DiagnosticRitual;

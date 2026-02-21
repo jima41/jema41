@@ -50,6 +50,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <HashRouter>
         <Toaster />
         <Sonner />
         <SyncStatus />
@@ -62,7 +63,6 @@ const App = () => {
                 <AnnouncementBar />
                 {/* Global Header */}
                 <Header />
-                <HashRouter>
                   <ScrollToTop />
                   <Suspense fallback={
                     <div className="min-h-screen flex items-center justify-center">
@@ -206,12 +206,12 @@ const App = () => {
               </Routes>
               </Suspense>
               <CookieBanner />
-            </HashRouter>
             </DataSyncInitializer>
             </CartProvider>
           </AdminProvider>
         </AuthProvider>
       </AnalyticsProvider>
+      </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>
   );

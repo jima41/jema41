@@ -957,6 +957,91 @@ export async function getAllScentProfiles(): Promise<ScentProfile[]> {
 // GESTION DU STOCKAGE D'IMAGES
 // ============================================================================
 
+// ============================================================================
+// OLFACTORY NOTES (globales)
+// ============================================================================
+
+export interface OlfactoryNoteRow {
+  id: string;
+  label: string;
+  pyramid: 'tete' | 'coeur' | 'fond';
+  family?: string | null;
+  created_at: string | null;
+}
+
+export async function getAllOlfactoryNotes(): Promise<OlfactoryNoteRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from('olfactory_notes')
+      .select('*')
+      .order('label', { ascending: true });
+
+    if (error) {
+      throw SupabaseError.fromError(error, 'getAllOlfactoryNotes');
+    }
+
+    return (data || []) as OlfactoryNoteRow[];
+  } catch (error) {
+    console.error('❌ Erreur getAllOlfactoryNotes:', error);
+    throw SupabaseError.fromError(error, 'getAllOlfactoryNotes');
+  }
+}
+
+export async function createOlfactoryNote(note: { label: string; pyramid: 'tete' | 'coeur' | 'fond'; family?: string | null; }): Promise<OlfactoryNoteRow> {
+  try {
+    const { data, error } = await supabase
+      .from('olfactory_notes')
+      .insert([{ label: note.label, pyramid: note.pyramid, family: note.family }])
+      .select()
+      .single();
+
+    if (error) {
+      throw SupabaseError.fromError(error, 'createOlfactoryNote');
+    }
+
+    return (data || {}) as OlfactoryNoteRow;
+  } catch (error) {
+    console.error('❌ Erreur createOlfactoryNote:', error);
+    throw SupabaseError.fromError(error, 'createOlfactoryNote');
+  }
+}
+
+export async function updateOlfactoryNote(id: string, updates: { label?: string; pyramid?: 'tete' | 'coeur' | 'fond'; family?: string | null; }): Promise<OlfactoryNoteRow> {
+  try {
+    const { data, error } = await supabase
+      .from('olfactory_notes')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw SupabaseError.fromError(error, 'updateOlfactoryNote');
+    }
+
+    return (data || {}) as OlfactoryNoteRow;
+  } catch (error) {
+    console.error('❌ Erreur updateOlfactoryNote:', error);
+    throw SupabaseError.fromError(error, 'updateOlfactoryNote');
+  }
+}
+
+export async function deleteOlfactoryNote(id: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('olfactory_notes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw SupabaseError.fromError(error, 'deleteOlfactoryNote');
+    }
+  } catch (error) {
+    console.error('❌ Erreur deleteOlfactoryNote:', error);
+    throw SupabaseError.fromError(error, 'deleteOlfactoryNote');
+  }
+}
+
 /**
  * Upload une image vers Supabase Storage
  * @param file Le fichier image à uploader

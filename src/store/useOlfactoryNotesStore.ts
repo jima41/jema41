@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import {
+  getAllOlfactoryNotes,
+  createOlfactoryNote,
+  updateOlfactoryNote,
+  deleteOlfactoryNote,
+} from '@/integrations/supabase/supabase';
 
 export interface OlfactoryNote {
   id: string;
@@ -11,9 +17,10 @@ export interface OlfactoryNote {
 
 interface OlfactoryNotesState {
   notes: OlfactoryNote[];
-  addNote: (label: string, pyramid: 'tete' | 'coeur' | 'fond', family?: string) => void;
-  removeNote: (id: string) => void;
-  updateNote: (id: string, updates: Partial<Pick<OlfactoryNote, 'label' | 'pyramid' | 'family'>>) => void;
+  initializeNotes: () => Promise<void>;
+  addNote: (label: string, pyramid: 'tete' | 'coeur' | 'fond', family?: string) => Promise<void>;
+  removeNote: (id: string) => Promise<void>;
+  updateNote: (id: string, updates: Partial<Pick<OlfactoryNote, 'label' | 'pyramid' | 'family'>>) => Promise<void>;
   getNotesByPyramid: (pyramid: 'tete' | 'coeur' | 'fond') => OlfactoryNote[];
   getNoteById: (id: string) => OlfactoryNote | undefined;
   getNoteByLabel: (label: string, pyramid: 'tete' | 'coeur' | 'fond') => OlfactoryNote | undefined;
@@ -115,7 +122,15 @@ const DEFAULT_NOTES: Omit<OlfactoryNote, 'id' | 'createdAt'>[] = [
   { label: 'Oud', pyramid: 'fond', family: 'Oriental' },
 ];
 
-const generateId = () => `note-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+const generateId = (prefix = 'note') => `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+
+const serverRowToNote = (r: { id: string; label: string; pyramid: 'tete' | 'coeur' | 'fond'; family?: string | null; created_at?: string | null; }): OlfactoryNote => ({
+  id: r.id,
+  label: r.label,
+  pyramid: r.pyramid,
+  family: r.family || undefined,
+  createdAt: r.created_at || new Date().toISOString(),
+});
 
 export const useOlfactoryNotesStore = create<OlfactoryNotesState>()(
   persist(
@@ -126,38 +141,80 @@ export const useOlfactoryNotesStore = create<OlfactoryNotesState>()(
         createdAt: new Date().toISOString(),
       })),
 
-      addNote: (label, pyramid, family) => {
+      initializeNotes: async () => {
+        try {
+          const rows = await getAllOlfactoryNotes();
+          if (rows && rows.length > 0) {
+            const mapped = rows.map(serverRowToNote);
+            set({ notes: mapped });
+            console.log(`🌿 Notes olfactives chargées depuis Supabase: ${mapped.length}`);
+          } else {
+            console.log('🌿 Aucune note serveur trouvée — utilisation des valeurs par défaut');
+          }
+        } catch (error) {
+          console.error('❌ Erreur initializeNotes:', error);
+        }
+      },
+
+      addNote: async (label, pyramid, family) => {
         const existing = get().notes.find(
           n => n.label.toLowerCase() === label.toLowerCase() && n.pyramid === pyramid
         );
         if (existing) return; // Pas de doublon
 
-        set(state => ({
-          notes: [
-            ...state.notes,
-            {
-              id: generateId(),
-              label,
-              pyramid,
-              family,
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        }));
+        // Optimistic insert with temp id
+        const tempId = generateId('temp');
+        const newNote: OlfactoryNote = {
+          id: tempId,
+          label,
+          pyramid,
+          family,
+          createdAt: new Date().toISOString(),
+        };
+
+        set(state => ({ notes: [...state.notes, newNote] }));
+
+        try {
+          const created = await createOlfactoryNote({ label, pyramid, family: family || null });
+          set(state => ({
+            notes: state.notes.map(n => n.id === tempId ? serverRowToNote(created) : n),
+          }));
+        } catch (error) {
+          console.error('❌ Erreur createOlfactoryNote:', error);
+          // rollback
+          set(state => ({ notes: state.notes.filter(n => n.id !== tempId) }));
+        }
       },
 
-      removeNote: (id) => {
-        set(state => ({
-          notes: state.notes.filter(n => n.id !== id),
-        }));
+      removeNote: async (id) => {
+        const prev = get().notes;
+        set(state => ({ notes: state.notes.filter(n => n.id !== id) }));
+        try {
+          // If id is a temp/local id (starts with default- or temp-) skip server delete
+          if (!id.startsWith('default-') && !id.startsWith('temp')) {
+            await deleteOlfactoryNote(id);
+          }
+        } catch (error) {
+          console.error('❌ Erreur deleteOlfactoryNote:', error);
+          // rollback
+          set({ notes: prev });
+        }
       },
 
-      updateNote: (id, updates) => {
+      updateNote: async (id, updates) => {
+        const prev = get().notes;
         set(state => ({
-          notes: state.notes.map(n =>
-            n.id === id ? { ...n, ...updates } : n
-          ),
+          notes: state.notes.map(n => n.id === id ? { ...n, ...updates } : n),
         }));
+
+        try {
+          if (!id.startsWith('default-') && !id.startsWith('temp')) {
+            await updateOlfactoryNote(id, updates as any);
+          }
+        } catch (error) {
+          console.error('❌ Erreur updateOlfactoryNote:', error);
+          set({ notes: prev });
+        }
       },
 
       getNotesByPyramid: (pyramid) => {

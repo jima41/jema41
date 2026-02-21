@@ -26,6 +26,9 @@ export interface CartItem {
 // ========== GUEST CART LOCALSTORAGE HELPERS ==========
 const GUEST_CART_KEY = 'rayha_guest_cart';
 
+// Promo persistence key (guest)
+const GUEST_PROMO_KEY = 'rayha_guest_promo';
+
 const loadGuestCart = (): CartItem[] => {
   try {
     const raw = localStorage.getItem(GUEST_CART_KEY);
@@ -46,6 +49,30 @@ const saveGuestCart = (items: CartItem[]) => {
 const clearGuestCartStorage = () => {
   try {
     localStorage.removeItem(GUEST_CART_KEY);
+    localStorage.removeItem(GUEST_PROMO_KEY);
+  } catch { /* ignore */ }
+};
+
+const loadGuestPromo = (): { code: string | null; discount: number } => {
+  try {
+    const raw = localStorage.getItem(GUEST_PROMO_KEY);
+    return raw ? JSON.parse(raw) : { code: null, discount: 0 };
+  } catch {
+    return { code: null, discount: 0 };
+  }
+};
+
+const saveGuestPromo = (code: string | null, discount: number) => {
+  try {
+    localStorage.setItem(GUEST_PROMO_KEY, JSON.stringify({ code, discount }));
+  } catch {
+    console.warn('⚠️ Impossible de sauvegarder le promo code dans localStorage');
+  }
+};
+
+const clearGuestPromo = () => {
+  try {
+    localStorage.removeItem(GUEST_PROMO_KEY);
   } catch { /* ignore */ }
 };
 
@@ -146,8 +173,9 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
    */
   initializeGuestCart: () => {
     const items = loadGuestCart();
+    const promo = loadGuestPromo();
     const totals = calculateTotals(items);
-    set({ cartItems: items, ...totals, isLoading: false });
+    set({ cartItems: items, ...totals, isLoading: false, promoCode: promo.code, promoDiscount: promo.discount });
     console.log(`📦 Guest cart chargé: ${items.length} articles`);
   },
 
@@ -568,17 +596,21 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
       isCartOpen: open,
     }),
 
-  setPromoCode: (code, discount) =>
+  setPromoCode: (code, discount) => {
+    saveGuestPromo(code, discount);
     set({
       promoCode: code,
       promoDiscount: discount,
-    }),
+    });
+  },
 
-  clearPromoCode: () =>
+  clearPromoCode: () => {
+    clearGuestPromo();
     set({
       promoCode: null,
       promoDiscount: 0,
-    }),
+    });
+  },
 
   // ========== OBSERVERS ==========
 

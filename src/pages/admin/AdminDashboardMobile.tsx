@@ -11,23 +11,7 @@ import {
 import { ProductTable } from '@/components/admin/ProductTable';
 import MobileProductCard from '@/components/admin/MobileProductCard';
 import { ProductSlideOver } from '@/components/admin/ProductSlideOver';
-  // État pour panneau d’ajout/édition produit
-  const [isProductPanelOpen, setIsProductPanelOpen] = useState(false);
-  const [productPanelMode, setProductPanelMode] = useState<'add' | 'edit'>('add');
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  // Ouvre le panneau pour ajouter un produit
-  const handleAddProduct = () => {
-    setProductPanelMode('add');
-    setSelectedProduct(null);
-    setIsProductPanelOpen(true);
-  };
 
-  // Ouvre le panneau pour éditer un produit
-  const handleEditProduct = (item: any) => {
-    setProductPanelMode('edit');
-    setSelectedProduct(item);
-    setIsProductPanelOpen(true);
-  };
 import { ScentRadarChart } from '@/components/admin/ScentRadarChart';
 import { OrderList, UnboxingPersonalization } from '@/components/admin/OrderList';
 import { UnboxingDialog } from '@/components/admin/UnboxingDialog';
@@ -49,6 +33,24 @@ const AdminDashboardMobile = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const refreshRef = useRef<HTMLDivElement>(null);
+
+  // État pour panneau d’ajout/édition produit
+  const [isProductPanelOpen, setIsProductPanelOpen] = useState(false);
+  const [productPanelMode, setProductPanelMode] = useState<'add' | 'edit'>('add');
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  // Ouvre le panneau pour ajouter un produit
+  const handleAddProduct = () => {
+    setProductPanelMode('add');
+    setSelectedProduct(null);
+    setIsProductPanelOpen(true);
+  };
+
+  // Ouvre le panneau pour éditer un produit
+  const handleEditProduct = (item: any) => {
+    setProductPanelMode('edit');
+    setSelectedProduct(item);
+    setIsProductPanelOpen(true);
+  };
 
   // Vérification d'accès admin
   useEffect(() => {

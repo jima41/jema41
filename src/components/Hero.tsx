@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import heroImage from '@/assets/hero-perfume.jpg';
 
 const Hero = () => {
   const hasFinePointer = useMediaQuery('(hover: hover) and (pointer: fine)');
@@ -53,7 +52,7 @@ const Hero = () => {
     >
       {/* Background Image Layer */}
       <img
-        src={heroImage}
+        src="/images/Hero-section.webp"
         alt="Collection Parfum Rayha"
         className="col-start-1 row-start-1 w-full h-full object-cover -z-10"
         loading="eager"

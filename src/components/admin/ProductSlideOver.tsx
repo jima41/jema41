@@ -49,12 +49,6 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
     setIsInputsReady(true);
   }, []);
 
-  // Effacer l'erreur d'image quand une URL est présente
-  useEffect(() => {
-    if (formData.image.trim()) {
-      setErrors(prev => ({ ...prev, image: undefined }));
-    }
-  }, [formData.image]);
 
   // Gestionnaire d'upload de fichier vers Supabase Storage
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,6 +311,13 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
     const families = classifyPerfume(formData.notes_tete, formData.notes_coeur, formData.notes_fond);
     setCalculatedFamilies(Array.from(families));
   }, [formData.notes_tete, formData.notes_coeur, formData.notes_fond]);
+
+  // Effacer l'erreur d'image quand une URL est présente
+  useEffect(() => {
+    if (formData.image && formData.image.trim()) {
+      setErrors(prev => ({ ...prev, image: undefined }));
+    }
+  }, [formData.image]);
 
   // Pré-remplir le formulaire en mode édition
   useEffect(() => {

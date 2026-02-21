@@ -90,8 +90,10 @@ const OlfactoryNotesManager: React.FC = () => {
     );
     if (exists) return;
 
-    addNote(trimmed, newNotePyramid, newNoteFamily);
-    setNewNoteLabel('');
+    (async () => {
+      await addNote(trimmed, newNotePyramid, newNoteFamily);
+      setNewNoteLabel('');
+    })();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -103,7 +105,7 @@ const OlfactoryNotesManager: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (deleteConfirm === id) {
-      removeNote(id);
+      (async () => { await removeNote(id); })();
       setDeleteConfirm(null);
     } else {
       setDeleteConfirm(id);
@@ -126,11 +128,13 @@ const OlfactoryNotesManager: React.FC = () => {
 
   const saveEdit = () => {
     if (!editingId || !editState.label.trim()) return;
-    updateNote(editingId, {
-      label: editState.label.trim(),
-      family: editState.family,
-      pyramid: editState.pyramid,
-    });
+    (async () => {
+      await updateNote(editingId, {
+        label: editState.label.trim(),
+        family: editState.family,
+        pyramid: editState.pyramid,
+      });
+    })();
     setEditingId(null);
   };
 
