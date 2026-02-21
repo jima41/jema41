@@ -305,17 +305,22 @@ const ProductDetail = () => {
                   <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{concentrationLabel}</div>
                 )}
                 {topFamilies && topFamilies.length > 0 && (
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="text-xs font-medium uppercase tracking-wider text-foreground">{topFamilies[0]}</span>
-                    {topFamilies.length > 1 && (
-                      <button
-                        onClick={() => setShowMoreFamilies(!showMoreFamilies)}
-                        aria-expanded={showMoreFamilies}
-                        className="text-xs text-muted-foreground px-2 py-0.5 rounded hover:bg-admin-border/30"
-                      >
-                        +
-                      </button>
-                    )}
+                  <div className="mb-2">
+                    <div className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+                      Famille olfactive
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-foreground">{topFamilies[0]}</span>
+                      {topFamilies.length > 1 && (
+                        <button
+                          onClick={() => setShowMoreFamilies(!showMoreFamilies)}
+                          aria-expanded={showMoreFamilies}
+                          className="text-xs text-muted-foreground px-2 py-0.5 rounded hover:bg-admin-border/30"
+                        >
+                          +
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
                 {showMoreFamilies && topFamilies.length > 1 && (
