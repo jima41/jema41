@@ -344,33 +344,20 @@ const ProductDetail = () => {
 
                   <div>
                     <h3 className="font-semibold mb-0.5 md:mb-1 uppercase text-[9px] md:text-xs tracking-wider text-muted-foreground">Pour</h3>
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {(() => {
                         const gender = storeProduct?.gender || (product.category === 'homme' ? 'homme' : product.category === 'femme' ? 'femme' : 'mixte');
                         if (gender === 'homme') {
-                          return (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#0A1128]/20 text-[#0A1128] border border-[#0A1128]/40 dark:text-[#7B8FAF] dark:bg-[#0A1128]/40 dark:border-[#0A1128]/60">
-                              Lui
-                            </span>
-                          );
+                          return <span className="text-black text-xs font-semibold">Lui</span>;
                         }
                         if (gender === 'femme') {
-                          return (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
-                              Elle
-                            </span>
-                          );
+                          return <span className="text-black text-xs font-semibold">Elle</span>;
                         }
-                        // mixte
                         return (
                           <>
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#0A1128]/20 text-[#0A1128] border border-[#0A1128]/40 dark:text-[#7B8FAF] dark:bg-[#0A1128]/40 dark:border-[#0A1128]/60">
-                              Lui
-                            </span>
-                            <span className="text-muted-foreground text-xs">&</span>
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
-                              Elle
-                            </span>
+                            <span className="text-black text-xs font-semibold">Lui</span>
+                            <span className="text-black text-xs font-semibold">&</span>
+                            <span className="text-black text-xs font-semibold">Elle</span>
                           </>
                         );
                       })()}
