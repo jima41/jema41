@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Power, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePromoCodesStore } from '@/store/usePromoCodesStore';
+import { useOrderManagement } from '@/hooks/use-order-management';
 
 const PromoCodesManager = () => {
   const promoCodes = usePromoCodesStore((state) => state.promoCodes);
@@ -17,6 +18,9 @@ const PromoCodesManager = () => {
     () => [...promoCodes].sort((a, b) => b.createdAt - a.createdAt),
     [promoCodes]
   );
+
+  // Orders (to compute promo usage)
+  const { orders } = useOrderManagement();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -83,6 +87,10 @@ const PromoCodesManager = () => {
                 </span>
                 <span className="text-xs text-admin-text-secondary">
                   -{promo.discount}%
+                </span>
+                {/* Usage count */}
+                <span className="text-xs text-admin-text-secondary ml-2">
+                  Utilisé: {orders ? orders.filter(o => o.promoCode && o.promoCode.toUpperCase() === promo.code && ['confirmed','shipped','delivered'].includes(o.status)).length : 0} fois
                 </span>
                 <span
                   className={`text-xs px-2 py-1 rounded-full border ${

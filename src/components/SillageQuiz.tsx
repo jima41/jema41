@@ -52,6 +52,24 @@ const QUESTIONS = [
 // ANIMATIONS & SUB-COMPONENTS
 // ============================================================================
 
+// Motion variants for quiz transitions (diffusion olfactive)
+const questionVariants = {
+  initial: { opacity: 0, y: 20, filter: 'blur(10px)' },
+  animate: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: 0.6, ease: 'easeOut', when: 'beforeChildren', staggerChildren: 0.1 }
+  },
+  exit: { opacity: 0, y: -20, filter: 'blur(10px)', transition: { duration: 0.4, ease: 'easeInOut' } }
+};
+
+const optionVariant = {
+  initial: { opacity: 0, y: 8, filter: 'blur(6px)' },
+  animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.45, ease: 'easeOut' } },
+  exit: { opacity: 0, y: -6, filter: 'blur(6px)', transition: { duration: 0.3 } }
+};
+
 const SprayBurst = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <motion.div
@@ -302,26 +320,38 @@ const DiagnosticRitual = () => {
                             </span>
                         </div>
                         
-                        <h3 className="font-serif text-xl md:text-2xl text-[#F5F5F0] mb-10 text-center font-light">
-                            {QUESTIONS[currentQuestionIndex].question}
-                        </h3>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {QUESTIONS[currentQuestionIndex].options.map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => handleAnswer(option.value)}
-                                    className="p-5 rounded-sm border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-900/30 text-left transition-all duration-300 group active:scale-[0.99]"
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={currentQuestionIndex}
+                            variants={questionVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="mb-10"
+                          >
+                            <h3 className="font-serif text-xl md:text-2xl text-[#F5F5F0] mb-6 text-center font-light">
+                              {QUESTIONS[currentQuestionIndex].question}
+                            </h3>
+
+                            <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-4" initial="initial" animate="animate" exit="exit">
+                              {QUESTIONS[currentQuestionIndex].options.map((option) => (
+                                <motion.button
+                                  key={option.value}
+                                  onClick={() => handleAnswer(option.value)}
+                                  variants={optionVariant}
+                                  className="p-5 rounded-sm border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-900/30 text-left transition-all duration-300 group active:scale-[0.99]"
                                 >
-                                    <span className="flex justify-between items-center w-full">
-                                        <span className="block text-xs md:text-sm text-neutral-400 group-hover:text-amber-100/90 font-light tracking-wide transition-colors">
-                                            {option.label}
-                                        </span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-800 group-hover:bg-[#D4AF37] transition-colors duration-500" />
+                                  <span className="flex justify-between items-center w-full">
+                                    <span className="block text-xs md:text-sm text-neutral-400 group-hover:text-amber-100/90 font-light tracking-wide transition-colors">
+                                      {option.label}
                                     </span>
-                                </button>
-                            ))}
-                        </div>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-800 group-hover:bg-[#D4AF37] transition-colors duration-500" />
+                                  </span>
+                                </motion.button>
+                              ))}
+                            </motion.div>
+                          </motion.div>
+                        </AnimatePresence>
                      </div>
                 </motion.div>
             )}

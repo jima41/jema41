@@ -22,7 +22,14 @@ export function DataSyncInitializer({ children }: { children: React.ReactNode })
   const promoCodes = usePromoCodesStore((state) => state.promoCodes);
   const { toast } = useToast();
 
-  console.log('🟢 [DataSyncInitializer] RENDER', { isInitialized, productsLoading, productsCount: products.length });
+  // Log statut uniquement lorsqu'il y a un changement significatif
+  // (évite d'émettre un log à chaque rendu et de créer une boucle avec `SyncStatus`)
+  // Note: SyncStatus capture les console logs et les met dans son propre état.
+  // On ne veut pas déclencher cela à chaque rendu.
+  
+  useEffect(() => {
+    console.log('🟢 [DataSyncInitializer] STATUS', { isInitialized, productsLoading, productsCount: products.length });
+  }, [isInitialized, productsLoading, products.length]);
 
   // Initialisation des produits au montage du composant
   useEffect(() => {

@@ -342,37 +342,71 @@ export function subscribeToProducts(
   callback: (payload: any) => void,
   errorCallback?: (error: Error) => void
 ) {
-  const subscription = supabase
-    .channel('products_changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'products',
-      },
-      (payload) => {
-        console.log('🔄 Changement détecté:', payload);
-        callback(payload);
-      }
-    )
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('✅ Souscription en temps réel activée');
-      } else if (status === 'CLOSED') {
-        console.error('❌ Souscription fermée');
-        if (errorCallback) {
-          errorCallback(new Error('Souscription Supabase fermée'));
-        }
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('❌ Erreur de canal:', err);
-        if (errorCallback) {
-          errorCallback(new Error(`Erreur de canal: ${err}`));
-        }
-      }
-    });
+  // Retourne un wrapper avec gestion de reconnexion (exponentielle)
+  let channel: any = null;
+  let disposed = false;
+  let retryCount = 0;
+  const maxRetries = 5;
+  const baseDelay = 2000; // ms
+  let reconnectTimer: any = null;
 
-  return subscription;
+  const createChannel = () => {
+    if (disposed) return;
+    channel = supabase
+      .channel('products_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products',
+        },
+        (payload: any) => {
+          // forward payload
+          callback(payload);
+        }
+      )
+      .subscribe((status: string, err: any) => {
+        if (disposed) return;
+        if (status === 'SUBSCRIBED') {
+          retryCount = 0;
+          console.log('✅ Souscription en temps réel activée');
+        } else if (status === 'CLOSED') {
+          console.warn('❌ Souscription fermée, tentative de reconnexion...');
+          // essayer de reconnecter avec backoff
+          if (retryCount < maxRetries) {
+            const delay = baseDelay * Math.pow(2, retryCount);
+            retryCount += 1;
+            reconnectTimer = setTimeout(() => {
+              createChannel();
+            }, delay);
+          } else {
+            const errObj = new Error('Souscription Supabase fermée (trop de tentatives)');
+            console.error('❌ Souscription définitivement fermée');
+            if (errorCallback) errorCallback(errObj);
+          }
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Erreur de canal:', err);
+          if (errorCallback) {
+            errorCallback(new Error(`Erreur de canal: ${err}`));
+          }
+        }
+      });
+  };
+
+  createChannel();
+
+  return {
+    unsubscribe: () => {
+      disposed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try {
+        if (channel && typeof channel.unsubscribe === 'function') channel.unsubscribe();
+      } catch (e) {
+        /* ignore */
+      }
+    },
+  };
 }
 
 // ============================================================================

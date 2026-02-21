@@ -7,7 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminProvider } from "@/context/AdminContext";
 import { AnalyticsProvider } from "@/context/AnalyticsContext";
-import Header, { ShippingBar } from "@/components/Header";
+import Header from "@/components/Header";
 import DataSyncInitializer from "@/components/DataSyncInitializer";
 import UserDataSyncInitializer from "@/components/UserDataSyncInitializer";
 import Index from "./pages/Index";
@@ -60,9 +60,11 @@ const App = () => {
                 <DataSyncInitializer>
                   <UserDataSyncInitializer />
                 {/* Global Header */}
-                <ShippingBar />
                 <Header />
                   <ScrollToTop />
+
+                  {/* Main content offset to account for fixed header */}
+                  <main style={{ paddingTop: 'var(--site-header-height, 64px)' }}>
                   <Suspense fallback={
                     <div className="min-h-screen flex items-center justify-center">
                       <div className="text-center">
@@ -205,6 +207,7 @@ const App = () => {
               </Routes>
               </Suspense>
               <CookieBanner />
+              </main>
             </DataSyncInitializer>
             </CartProvider>
           </AdminProvider>

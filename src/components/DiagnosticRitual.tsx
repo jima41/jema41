@@ -74,12 +74,12 @@ export default function DiagnosticRitual() {
   // After filling animation ends, show result
   useEffect(() => {
     if (!isFilling) return;
-    const fillDuration = 1200; // ms
-    const glintDelay = fillDuration + 220;
-    setTimeout(() => {
-      // glint then result
-      setTimeout(() => setStage('result'), glintDelay);
-    }, fillDuration);
+    // We consider the visual "filled" state at 80% of the bottle.
+    // Keep the JS timeout in sync with the SVG animation duration below.
+    const fillDuration = 1100; // ms (matches motion.rect transition)
+    const glintDelay = 220; // extra for subtle glint
+    const timeout = setTimeout(() => setStage('result'), fillDuration + glintDelay);
+    return () => clearTimeout(timeout);
   }, [isFilling]);
 
   const recommended = useMemo(() => {
@@ -223,7 +223,8 @@ export default function DiagnosticRitual() {
                       className="opacity-95"
                     />
 
-                    {/* Liquid - animated rect clipped to bottle */}
+                    {/* Liquid - animated rect clipped to bottle (fills to 80%) */}
+                    {/* Bottle interior span: y 48 -> 120 (height 72). 80% = 57.6 -> height ~58 */}
                     <motion.rect
                       x={32}
                       width={36}
@@ -231,8 +232,10 @@ export default function DiagnosticRitual() {
                       fill="#D4AF37"
                       clipPath="url(#bottleClip)"
                       initial={{ y: 120, height: 0 }}
-                      animate={isFilling ? { y: 48, height: 72 } : { y: 120, height: 0 }}
+                      animate={isFilling ? { y: 62, height: 58 } : { y: 120, height: 0 }}
                       transition={{ duration: 1.1, ease: 'easeInOut' }}
+                      onAnimationComplete={() => {
+                        /* noop here — useEffect handles stage transition timing to include glint */}
                     />
 
                     {/* Subtle glint when filled */}

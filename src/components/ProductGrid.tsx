@@ -44,19 +44,8 @@ const ProductGrid = ({ onAddToCart }: ProductGridProps) => {
     }
   }, [displayProducts]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('📊 ProductGrid re-rendered with products:', {
-      count: products.length,
-      hasFeatured: featuredProductIds.length > 0,
-      displayProductsCount: displayProducts.length,
-      firstProduct: products.length > 0 ? {
-        name: products[0].name,
-        image: products[0].image?.substring?.(0, 50),
-        hasImage: !!products[0].image,
-      } : null
-    });
-  }, [products, displayProducts]);
+  // Removed verbose debug logging to avoid creating render/log loops
+  // If needed, use a temporary debug flag and throttle logging.
 
   const handleAddToCart = (id: string) => {
     const product = products.find(p => p.id === id);

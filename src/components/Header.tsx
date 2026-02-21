@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X, LogOut, User, Settings, ChevronRight, Heart } from 'lucide-react';
@@ -11,18 +11,7 @@ interface HeaderProps {
   onCartClick: () => void;
 }
 
-// ============================================================================
-// SHIPPING BAR COMPONENT
-// ============================================================================
-export const ShippingBar = () => {
-  return (
-    <div className="fixed top-0 left-0 right-0 h-6 bg-[#FDFBF7] border-b border-border/20 flex items-center justify-center z-40">
-      <span className="text-[10px] text-gray-500 font-medium tracking-shipping uppercase">
-        L'EXCELLENCE OLFACTIVE, LIVRÉE CHEZ VOUS.
-      </span>
-    </div>
-  );
-};
+// (ShippingBar removed — message retired)
 
 // ============================================================================
 // LOGO COMPONENT (Typographie Contrastée: Serif + Sans-serif)
@@ -232,6 +221,7 @@ const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartC
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const headerRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -262,6 +252,36 @@ const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartC
   const headerPaddingScale = isScrolled ? 0.85 : 1;
   const backdropOpacity = isScrolled ? 0.5 : 0.4;
 
+  // Expose header height as a CSS variable so pages can offset content
+  useEffect(() => {
+    const setHeaderHeight = () => {
+      const el = headerRef.current;
+      if (!el) return;
+      const height = Math.ceil(el.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--site-header-height', `${height}px`);
+    };
+
+    // Initial measure
+    setHeaderHeight();
+
+    // Update on resize and scroll (header changes size on scroll due to padding scale)
+    const onUpdate = () => requestAnimationFrame(setHeaderHeight);
+    window.addEventListener('resize', onUpdate);
+    window.addEventListener('orientationchange', onUpdate);
+    window.addEventListener('scroll', onUpdate);
+
+    // Also observe mutations in case dynamic content changes header height
+    const ro = new ResizeObserver(setHeaderHeight);
+    if (headerRef.current) ro.observe(headerRef.current);
+
+    return () => {
+      window.removeEventListener('resize', onUpdate);
+      window.removeEventListener('orientationchange', onUpdate);
+      window.removeEventListener('scroll', onUpdate);
+      ro.disconnect();
+    };
+  }, [headerPaddingScale]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -278,18 +298,19 @@ const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartC
   };
 
   return (
-    <header className={`${isScrolled ? 'fixed top-0 left-0 right-0' : 'relative mt-6'} w-full z-[100] bg-white/70 dark:bg-black/40 backdrop-blur-md transition-all duration-300`}>
+    <>
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 w-full z-[100] bg-white/70 dark:bg-black/40 backdrop-blur-md transition-all duration-300 overflow-hidden">
 
-      {/* Main Header with Glassmorphism */}
-      <motion.div
-        className={`backdrop-blur-xl transition-all duration-300`}
-        style={{
-          backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
-        }}
-        animate={{
-          backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
-        }}
-      >
+        {/* Main Header with Glassmorphism */}
+        <motion.div
+          className={`backdrop-blur-xl transition-all duration-300`}
+          style={{
+            backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
+          }}
+          animate={{
+            backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
+          }}
+        >
         <div className="container mx-auto">
           <motion.div
             className="flex items-center justify-between w-full transition-[padding] duration-300"
@@ -507,7 +528,17 @@ const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartC
           </motion.div>
         )}
       </motion.div>
-    </header>
+
+        {/* Fine invisible bar kept inside header (doesn't overflow or show) */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px bg-transparent opacity-0 pointer-events-none"
+          aria-hidden="true"
+        />
+
+      </header>
+
+      {/* Spacer removed per request */}
+    </>
   );
 };
 

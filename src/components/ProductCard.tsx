@@ -96,7 +96,7 @@ const ProductCard = ({
 
   return (
     <div 
-      className="product-card group text-left w-full relative transition-shadow duration-700 ease-in-out shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_42px_rgba(15,23,42,0.14)]"
+      className="product-card group text-left w-full relative transition-shadow duration-700 ease-in-out shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_42px_rgba(15,23,42,0.14)] rounded-t-lg md:rounded-t-xl rounded-b-[0.25rem] md:rounded-b-[0.375rem] overflow-hidden"
       onClick={() => navigate(`/product/${id}`)}
       role="button"
       tabIndex={0}
@@ -109,15 +109,14 @@ const ProductCard = ({
     >
       {/* Image Container */}
       <motion.div 
-        className="relative aspect-square overflow-hidden rounded-lg md:rounded-xl bg-secondary/30 mb-2 md:mb-3"
-        whileHover={{ scale: 1.02 }}
+        className="relative aspect-square overflow-hidden rounded-t-lg md:rounded-t-xl rounded-b-none bg-secondary/30 mb-2 md:mb-3"
         transition={{ duration: 0.6, ease: 'easeInOut' }}
       >
         {image ? (
           <motion.img
             src={image}
             alt={name}
-            className={`w-full h-full object-cover img-zoom transition-transform duration-700 ease-in-out group-hover:scale-[1.05] ${
+            className={`w-full h-full object-cover img-zoom transition-transform duration-700 ease-in-out rounded-t-lg md:rounded-t-xl ${
               isOutOfStock ? 'grayscale backdrop-blur-sm' : ''
             }`}
             loading="lazy"
@@ -138,14 +137,14 @@ const ProductCard = ({
         
         {/* Out of Stock - Raffiné Text Overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center backdrop-blur-sm rounded-t-lg md:rounded-t-xl overflow-hidden">
             <p className="font-serif text-xl text-[#D4AF37] font-light tracking-widest uppercase drop-shadow-lg">
               ÉPUISÉ
             </p>
           </div>
         )}
         {!isOutOfStock && (
-          <div className="absolute inset-0 glass opacity-0 group-hover:opacity-60 transition-opacity duration-300 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute inset-0 glass opacity-0 group-hover:opacity-60 transition-opacity duration-300 flex items-center justify-center rounded-t-lg md:rounded-t-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <motion.button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -186,7 +185,7 @@ const ProductCard = ({
       </motion.div>
 
       {/* Product Info - Fixed Layout */}
-      <div className="flex flex-col min-h-[110px] p-3 rounded-lg bg-white/15 backdrop-blur-sm transition-all duration-300 group-hover:bg-white/30 group-hover:backdrop-blur-md cursor-pointer">
+      <div className="flex flex-col min-h-[110px] p-3 rounded-none bg-white/15 backdrop-blur-sm transition-all duration-300 group-hover:bg-white/30 group-hover:backdrop-blur-md cursor-pointer">
         {/* Brand & Title */}
         <div className="mb-2">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">

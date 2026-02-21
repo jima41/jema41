@@ -77,12 +77,28 @@ export const SyncStatus = () => {
 
     const handleLog = (type: 'success' | 'error' | 'info') => (...args: any[]) => {
       const message = args.join(' ');
-      
-      // Filtrer seulement les messages de sync
-      if (message.includes('✅') || message.includes('📝') || message.includes('📦') || 
+
+      // Filter out noisy React Router future-flag warnings and similar developer hints
+      const ROUTER_WARNING_PATTERNS = [
+        'React Router Future Flag Warning',
+        'v7_startTransition',
+        'v7_relativeSplatPath',
+        'reactrouter.com/v6/upgrading/future'
+      ];
+
+      if (ROUTER_WARNING_PATTERNS.some((p) => message.includes(p))) {
+        // Still forward to original console but don't create a sync event
+        if (type === 'success') originalLog(...args);
+        else if (type === 'error') originalError(...args);
+        else originalWarn(...args);
+        return;
+      }
+
+      // Filtrer seulement les messages de sync (icônes emoji spécifiques)
+      if (message.includes('✅') || message.includes('📝') || message.includes('📦') ||
           message.includes('🗑️') || message.includes('📊') || message.includes('❌') ||
           message.includes('⏮️') || message.includes('🆕') || message.includes('🔄')) {
-        
+
         const event: SyncEvent = {
           id: `${Date.now()}-${Math.random()}`,
           message,
