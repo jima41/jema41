@@ -27,7 +27,7 @@ export function renderSimpleMarkdown(input: string | null | undefined): string {
   // Paragraphs: split on two or more newlines
   // Split on single newline so that one Enter in the admin becomes one paragraph
   const paragraphs = text.split(/\n/g).map((p) => {
-    return `<p>${p}</p>`;
+    return `<p class="mb-4">${p}</p>`;
   });
 
   return paragraphs.join('');
