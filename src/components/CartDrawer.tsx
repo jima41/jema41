@@ -276,7 +276,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
               >
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  <span className="hidden md:inline">Passer \u00e0 la caisse</span>
+                  <span className="hidden md:inline">Passer à la caisse</span>
                   <span className="md:hidden">Commander</span>
                 </>
               </motion.button>
