@@ -2,7 +2,13 @@
 export function renderSimpleMarkdown(input: string | null | undefined): string {
   if (!input) return '';
   // Normalize newlines
-  let text = input.replace(/\r\n?/g, '\n');
+  let text = String(input);
+
+  // If description contains escaped newline sequences (e.g. "\n"), convert them to real newlines
+  text = text.replace(/\\r\\n|\\n|\\r/g, '\n');
+
+  // Normalize CRLF to LF
+  text = text.replace(/\r\n?/g, '\n');
 
   // Escape HTML to avoid XSS
   const escapeHtml = (s: string) =>
