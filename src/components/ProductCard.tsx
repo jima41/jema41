@@ -66,12 +66,14 @@ const ProductCard = ({
   const { user } = useAuth();
   const hasOlfactoryData = notes_tete && notes_tete.length > 0 || notes_coeur && notes_coeur.length > 0 || notes_fond && notes_fond.length > 0;
   
-  // Debug logging
+  // Debug logging only in development
   useEffect(() => {
-    if (!image) {
-      console.warn(`⚠️ ProductCard ${name} (ID: ${id}) has NO image!`);
-    } else {
-      console.log(`✅ ProductCard ${name} has image:`, typeof image, image?.substring?.(0, 50) || image);
+    if (process.env.NODE_ENV === 'development') {
+      if (!image) {
+        console.debug(`⚠️ ProductCard ${name} (ID: ${id}) has NO image!`);
+      } else {
+        console.debug(`✅ ProductCard ${name} has image:`, typeof image, typeof image === 'string' ? image.substring?.(0, 50) : image);
+      }
     }
   }, [id, name, image]);
   
@@ -116,15 +118,17 @@ const ProductCard = ({
           <motion.img
             src={image}
             alt={name}
+            width={500}
+            height={500}
             className={`w-full h-full object-cover img-zoom transition-transform duration-700 ease-in-out rounded-t-lg md:rounded-t-xl ${
               isOutOfStock ? 'grayscale backdrop-blur-sm' : ''
             }`}
             loading="lazy"
             onError={(e) => {
-              console.error(`❌ Image failed to load: ${image}`, e);
+              if (process.env.NODE_ENV === 'development') console.debug(`❌ Image failed to load: ${image}`, e);
             }}
             onLoad={() => {
-              console.log(`✅ Image loaded successfully: ${name}`);
+              if (process.env.NODE_ENV === 'development') console.debug(`✅ Image loaded successfully: ${name}`);
             }}
           />
         ) : (

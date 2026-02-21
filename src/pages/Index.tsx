@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Hero from '@/components/Hero';
-import SillageQuiz from '@/components/SillageQuiz';
+import { lazy, Suspense } from 'react';
+const SillageQuiz = lazy(() => import('@/components/SillageQuiz'));
 import ProductGrid from '@/components/ProductGrid';
 import CartDrawer from '@/components/CartDrawer';
 import Reassurance from '@/components/Reassurance';
@@ -47,7 +48,9 @@ const Index = () => {
         <p className="text-xs sm:hidden font-light leading-relaxed text-gray-600 max-w-md mx-auto mt-8 mb-16" style={{marginBottom: '64px'}}>
           Découvrez notre sélection de parfums d'exception, soigneusement choisis pour éveiller vos sens.
         </p>
-        <SillageQuiz />
+        <Suspense fallback={<div className="py-12 text-center">Chargement...</div>}>
+          <SillageQuiz />
+        </Suspense>
         <ProductGrid onAddToCart={handleAddToCart} />
         <Reassurance />
       </main>

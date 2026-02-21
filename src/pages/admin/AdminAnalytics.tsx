@@ -223,7 +223,7 @@ const AdminAnalytics = () => {
       {selectedView === 'overview' && (
         <div className="space-y-6">
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
               title="VISITEURS AUJOURD'HUI"
               value={stats.todaySessions}
@@ -252,7 +252,7 @@ const AdminAnalytics = () => {
           </div>
 
           {/* Second row KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
               title="TOTAL SESSIONS"
               value={stats.totalSessions}
@@ -549,7 +549,7 @@ const AdminAnalytics = () => {
       {selectedView === 'products' && (
         <div className="space-y-6">
           {/* Product KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <KpiCard
               title="PRODUITS VUS"
               value={stats.totalProductViews}
@@ -863,7 +863,7 @@ const AdminAnalytics = () => {
             <CardContent>
               {currentSession ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-3 bg-background/50 rounded-lg border border-border/30">
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Durée</p>
                       <p className="text-xl font-light" style={{ color: GOLD }}>{fmt(now - currentSession.startTime)}</p>

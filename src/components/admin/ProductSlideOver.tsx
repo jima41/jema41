@@ -44,6 +44,11 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Helpers to avoid polluting production console
+  const devLog = (...args: any[]) => { if (process.env.NODE_ENV === 'development') console.debug(...args); };
+  const devWarn = (...args: any[]) => { if (process.env.NODE_ENV === 'development') console.warn(...args); };
+  const devError = (...args: any[]) => { if (process.env.NODE_ENV === 'development') console.error(...args); };
+
   // Marquer les inputs comme prêts après le montage
   useEffect(() => {
     setIsInputsReady(true);
@@ -52,15 +57,15 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
 
   // Gestionnaire d'upload de fichier vers Supabase Storage
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🔍 handleFileUpload appelé avec event:', event);
-    console.log('🔍 event.target:', event.target);
-    console.log('🔍 event.target.files:', event.target.files);
+    devLog('🔍 handleFileUpload appelé avec event:', event);
+    devLog('🔍 event.target:', event.target);
+    devLog('🔍 event.target.files:', event.target.files);
 
     const file = event.target.files?.[0];
     if (file) {
-      alert('Fichier reçu !'); // Alerte pour diagnostiquer
-      console.log('📁 Fichier détecté:', file);
-      console.log('📁 Fichier sélectionné:', {
+    devLog('Fichier reçu (dev)');
+    devLog('📁 Fichier détecté:', file);
+    devLog('📁 Fichier sélectionné:', {
         name: file.name,
         type: file.type,
         size: file.size,
@@ -70,7 +75,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
       // Vérifier les variables d'environnement
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      console.log('🔧 Variables Supabase:', {
+      devLog('🔧 Variables Supabase:', {
         url: supabaseUrl ? '✅ Présente' : '❌ MANQUANTE',
         key: supabaseKey ? '✅ Présente' : '❌ MANQUANTE'
       });
@@ -101,17 +106,17 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
           return;
         }
 
-        console.log('📤 Démarrage de l\'upload vers Supabase Storage...');
+        devLog('📤 Démarrage de l\'upload vers Supabase Storage...');
         
         // Upload vers Supabase Storage
         const imageUrl = await uploadProductImage(file, 'product-images', 'products');
-        console.log('✅ URL reçue de Supabase:', imageUrl);
+        devLog('✅ URL reçue de Supabase:', imageUrl);
         
         // Nettoyer l'URL temporaire et mettre à jour avec l'URL finale
         URL.revokeObjectURL(previewUrl);
         
         // Mettre à jour le formulaire avec la nouvelle URL (équivalent de setValue avec shouldValidate)
-        console.log('📝 Injection de l\'URL dans le formulaire:', imageUrl);
+        devLog('📝 Injection de l\'URL dans le formulaire:', imageUrl);
         setFormData(prev => ({ ...prev, image: imageUrl }));
         setImagePreview(imageUrl);
         setImageUploadStatus('success');
@@ -119,25 +124,25 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
         // Effacer l'erreur de validation pour ce champ (équivalent de shouldValidate: true)
         setErrors(prev => ({ ...prev, image: undefined }));
         
-        console.log('🎉 Upload terminé avec succès');
+        devLog('🎉 Upload terminé avec succès');
         toast.success('Image uploadée avec succès !');
         
       } catch (error: any) {
-        console.error('❌ Erreur complète lors de l\'upload:', error);
-        console.error('❌ Message d\'erreur:', error.message);
-        console.error('❌ Stack trace:', error.stack);
+        devError('❌ Erreur complète lors de l\'upload:', error);
+        devError('❌ Message d\'erreur:', error?.message);
+        devError('❌ Stack trace:', error?.stack);
         toast.error(error.message || 'Erreur lors du chargement de l\'image');
         setImageUploadStatus('error');
       } finally {
         setIsUploadingImage(false);
         // Réinitialiser l'input pour permettre de sélectionner le même fichier à nouveau
-        if (fileInputRef.current) {
+          if (fileInputRef.current) {
           fileInputRef.current.value = '';
-          console.log('🔄 Input file réinitialisé');
+          devLog('🔄 Input file réinitialisé');
         }
       }
     } else {
-      console.log('⚠️ Aucun fichier sélectionné dans event.target.files');
+      devWarn('⚠️ Aucun fichier sélectionné dans event.target.files');
     }
   };
 
@@ -802,6 +807,9 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
                 <img 
                   src={imagePreview} 
                   alt="Aperçu" 
+                  loading="lazy"
+                  width={400}
+                  height={128}
                   className="w-full h-32 object-cover rounded-lg border border-admin-border"
                 />
                 {/* Feedback visuel du statut d'upload */}
@@ -822,10 +830,10 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
 
             {/* Boutons d'upload */}
             <div className="flex gap-2 mb-3">
-              <Button
+                <Button
                 type="button"
                 onClick={() => {
-                  console.log('🖱️ Bouton Fichiers cliqué');
+                  if (process.env.NODE_ENV === 'development') console.debug('🖱️ Bouton Fichiers cliqué');
                   triggerFileUpload();
                 }}
                 variant="outline"
@@ -843,7 +851,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
               <Button
                 type="button"
                 onClick={() => {
-                  console.log('📷 Bouton Caméra cliqué');
+                  if (process.env.NODE_ENV === 'development') console.debug('📷 Bouton Caméra cliqué');
                   triggerCameraCapture();
                 }}
                 variant="outline"

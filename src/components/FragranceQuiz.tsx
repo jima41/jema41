@@ -231,6 +231,8 @@ const FragranceQuiz = () => {
                           src={option.imageSrc} 
                           alt={option.imageAlt}
                           loading="lazy"
+                          width={300}
+                          height={300}
                           className={`w-full h-full object-cover transition-transform duration-500 ${
                             selectedFamily === option.id ? 'scale-110' : 'group-hover:scale-105'
                           }`}

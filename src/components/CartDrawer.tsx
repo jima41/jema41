@@ -119,6 +119,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
             <button 
               onClick={onClose}
               className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center active:bg-secondary rounded-full transition-colors"
+              aria-label="Fermer le panier"
             >
               <X className="w-5 h-5" />
             </button>
@@ -159,6 +160,9 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                   <img
                     src={item.image}
                     alt={item.name}
+                    loading="lazy"
+                    width={80}
+                    height={80}
                     className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
@@ -175,6 +179,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                           onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                           className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center active:bg-secondary rounded transition-colors"
                           disabled={item.quantity <= 1}
+                          aria-label="Diminuer la quantité"
                         >
                           <Minus className="w-4 h-4" />
                         </button>
@@ -182,6 +187,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                         <button
                           onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                           className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center active:bg-secondary rounded transition-colors"
+                          aria-label="Augmenter la quantité"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -194,6 +200,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                         <button
                           onClick={() => onRemoveItem(item.id)}
                           className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground active:text-destructive transition-colors"
+                          aria-label="Retirer l'article du panier"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

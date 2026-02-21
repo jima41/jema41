@@ -66,7 +66,7 @@ const Hero = () => {
       />
 
       {/* Text Content Layer */}
-      <div className="col-start-1 row-start-1 w-full h-full z-10 flex items-center justify-start px-6 md:px-12 lg:px-24">
+      <div className="col-start-1 row-start-1 w-full h-full z-10 flex items-center justify-start px-4 sm:px-6 md:px-12 lg:px-24">
         <div className="max-w-2xl animate-fade-up text-left">
           {/* Kicker */}
           <span className="inline-block text-[11px] sm:text-xs font-medium text-[#A68A56] mb-3 sm:mb-4 tracking-[0.3em] uppercase">
@@ -110,15 +110,15 @@ const Hero = () => {
           </p>
           
           {/* CTA Button - Mobile version */}
-          <button onClick={handleExplore} className="sm:hidden group px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border-[0.5px] border-white/20 bg-white/10 backdrop-blur-md hover:bg-white/20 hover:border-[#D4AF37] transition-all duration-500 ease-in-out font-montserrat text-xs sm:text-sm font-light tracking-[0.2em] uppercase text-white min-h-12">
-            <span className="inline-block transition-transform duration-500 ease-in-out group-hover:-translate-y-0.5">
+          <button onClick={handleExplore} className="sm:hidden group px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border-[0.5px] border-white/20 bg-white/10 backdrop-blur-md md:hover:bg-white/20 md:hover:border-[#D4AF37] transition-all duration-500 ease-in-out font-montserrat text-xs sm:text-sm font-light tracking-[0.2em] uppercase text-white min-w-[44px] min-h-[44px]">
+            <span className="inline-block transition-transform duration-500 ease-in-out md:group-hover:-translate-y-0.5">
               Explorer
             </span>
           </button>
           
           {/* CTA Button - Desktop version */}
-          <button onClick={handleExplore} className="hidden sm:inline-block group px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border-[0.5px] border-white/20 bg-white/10 backdrop-blur-md hover:bg-white/20 hover:border-[#D4AF37] transition-all duration-500 ease-in-out font-montserrat text-xs sm:text-sm font-light tracking-[0.2em] uppercase text-black min-h-10">
-            <span className="inline-block transition-transform duration-500 ease-in-out group-hover:-translate-y-0.5">
+          <button onClick={handleExplore} className="hidden sm:inline-block group px-4 sm:px-6 py-3 md:py-3.5 rounded-lg border-[0.5px] border-white/20 bg-white/10 backdrop-blur-md md:hover:bg-white/20 md:hover:border-[#D4AF37] transition-all duration-500 ease-in-out font-montserrat text-xs sm:text-sm font-light tracking-[0.2em] uppercase text-black min-w-[44px] min-h-[44px]">
+            <span className="inline-block transition-transform duration-500 ease-in-out md:group-hover:-translate-y-0.5">
               Explorer la Collection
             </span>
           </button>

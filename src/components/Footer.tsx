@@ -12,13 +12,13 @@ const Footer = () => {
               L'art de la parfumerie de luxe, accessible à tous. Découvrez des fragrances d'exception qui racontent votre histoire.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="p-2 rounded-full bg-background/10 hover:bg-background/20 transition-colors">
+              <a href="#" aria-label="Instagram Rayha Store" className="p-2 rounded-full bg-background/10 hover:bg-background/20 transition-colors">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="p-2 rounded-full bg-background/10 hover:bg-background/20 transition-colors">
+              <a href="#" aria-label="Facebook Rayha Store" className="p-2 rounded-full bg-background/10 hover:bg-background/20 transition-colors">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="p-2 rounded-full bg-background/10 hover:bg-background/20 transition-colors">
+              <a href="#" aria-label="Contacter Rayha Store" className="p-2 rounded-full bg-background/10 hover:bg-background/20 transition-colors">
                 <Mail className="w-5 h-5" />
               </a>
             </div>
