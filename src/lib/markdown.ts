@@ -25,10 +25,9 @@ export function renderSimpleMarkdown(input: string | null | undefined): string {
   text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
 
   // Paragraphs: split on two or more newlines
-  const paragraphs = text.split(/\n{2,}/g).map((p) => {
-    // Within a paragraph, single newlines become <br>
-    const withBreaks = p.replace(/\n/g, '<br/>');
-    return `<p>${withBreaks}</p>`;
+  // Split on single newline so that one Enter in the admin becomes one paragraph
+  const paragraphs = text.split(/\n/g).map((p) => {
+    return `<p>${p}</p>`;
   });
 
   return paragraphs.join('');
