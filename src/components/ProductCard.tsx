@@ -195,7 +195,7 @@ const ProductCard = ({
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
             {brand}
           </span>
-          <h3 className="font-medium text-foreground leading-tight group-hover:text-primary transition-colors text-xs line-clamp-1">
+            <h3 className="font-medium text-foreground leading-tight transition-colors text-xs line-clamp-1">
             {name}
           </h3>
         </div>
