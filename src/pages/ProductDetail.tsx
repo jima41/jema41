@@ -13,7 +13,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useProductTracking } from '@/hooks/use-page-tracking';
-import { getTopFamilies } from '@/lib/olfactory';
+import { getTopFamilies, getBestFamily } from '@/lib/olfactory';
 import { renderSimpleMarkdown } from '@/lib/markdown';
 import type { Product } from '@/lib/products';
 
@@ -166,6 +166,7 @@ const ProductDetail = () => {
 
   const concentrationRaw = (storeProduct && (storeProduct as any).concentration) || (product && (product as any).concentration) || '';
   const topFamilies = getTopFamilies(storeProduct?.notes_tete || product?.notes_tete || [], storeProduct?.notes_coeur || product?.notes_coeur || [], storeProduct?.notes_fond || product?.notes_fond || [], storeProduct?.families || product?.families || [], 3);
+  const bestFamily = getBestFamily(storeProduct?.notes_tete || product?.notes_tete || [], storeProduct?.notes_coeur || product?.notes_coeur || [], storeProduct?.notes_fond || product?.notes_fond || [], storeProduct?.families || product?.families || []);
   const concentrationLabel = (() => {
     if (!concentrationRaw) return '';
     const map: Record<string, string> = {
@@ -291,6 +292,19 @@ const ProductDetail = () => {
                   />
                 </motion.button>
               </motion.div>
+
+              {/* Composition Olfactive - moved under image */}
+              {storeProduct && (storeProduct.notes_tete || storeProduct.notes_coeur || storeProduct.notes_fond) && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Composition Olfactive</h3>
+                  <SimpleOlfactoryDisplay
+                    notes_tete={storeProduct.notes_tete || []}
+                    notes_coeur={storeProduct.notes_coeur || []}
+                    notes_fond={storeProduct.notes_fond || []}
+                    families={storeProduct.families || []}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Product Info */}
@@ -299,21 +313,19 @@ const ProductDetail = () => {
                 <p className="text-[10px] md:text-xs lg:text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1 md:mb-2">
                   {product.brand}
                 </p>
-                <h1 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal leading-snug md:leading-normal lg:leading-relaxed mb-2 md:mb-4 lg:mb-6 text-foreground">{product.name}</h1>
+                <h1 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal leading-snug md:leading-normal lg:leading-relaxed mb-3 md:mb-4 lg:mb-6 text-foreground">{product.name}</h1>
                 {concentrationLabel && (
                   <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{concentrationLabel}</div>
                 )}
                 {topFamilies && topFamilies.length > 0 && (
-                  <div className="mb-2">
-                    <div className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                      Famille olfactive
-                    </div>
+                  <div className="mt-6">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Famille olfactive</h3>
                     <div className="flex flex-col">
-                      <span className="text-xs font-medium uppercase tracking-wider text-foreground">{topFamilies[0]}</span>
+                      <span className="text-xs uppercase tracking-wider text-foreground"><span className="italic font-semibold">{topFamilies[0]}</span></span>
                       {topFamilies.length > 1 && (
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex gap-4">
                           {topFamilies.slice(1, 3).map((f) => (
-                            <span key={f} className="text-xs text-foreground/80">{f}</span>
+                            <span key={f} className="text-xs italic text-foreground/80">{f}</span>
                           ))}
                         </div>
                       )}
@@ -323,6 +335,11 @@ const ProductDetail = () => {
                 {stock === 0 && (
                   <span className="text-xs md:text-sm lg:text-base font-serif text-[#D4AF37] font-light tracking-widest uppercase mb-4 md:mb-6 inline-block">ÉPUISÉ</span>
                 )}
+              </div>
+
+              {/* Elegant separator between families and description */}
+              <div className="my-4">
+                <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-80" />
               </div>
 
               <div className="space-y-3 md:space-y-4 lg:space-y-6">
@@ -335,17 +352,7 @@ const ProductDetail = () => {
                   />
                 </div>
 
-                {/* Notes Olfactives Simplifiées */}
-                {storeProduct && (storeProduct.notes_tete || storeProduct.notes_coeur || storeProduct.notes_fond) && (
-                  <div className="pt-1.5 md:pt-2 lg:pt-4">
-                    <SimpleOlfactoryDisplay
-                      notes_tete={storeProduct.notes_tete || []}
-                      notes_coeur={storeProduct.notes_coeur || []}
-                      notes_fond={storeProduct.notes_fond || []}
-                      families={storeProduct.families || []}
-                    />
-                  </div>
-                )}
+                {/* Notes Olfactives Simplifiées (moved under image) */}
 
                 {/* Additional Information Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 lg:gap-6 pt-1.5 md:pt-2 lg:pt-4">
@@ -356,10 +363,7 @@ const ProductDetail = () => {
                     </div>
                   )}
 
-                  <div>
-                    <h3 className="font-semibold mb-0.5 md:mb-1 uppercase text-[9px] md:text-xs tracking-wider text-muted-foreground">Catégorie</h3>
-                    <p className="text-[10px] md:text-xs lg:text-sm text-foreground capitalize">{product.category}</p>
-                  </div>
+                  {/* Catégorie retirée à la demande */}
 
                   <div>
                     <h3 className="font-semibold mb-0.5 md:mb-1 uppercase text-[9px] md:text-xs tracking-wider text-muted-foreground">Pour</h3>

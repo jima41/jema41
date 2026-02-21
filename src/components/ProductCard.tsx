@@ -206,9 +206,18 @@ const ProductCard = ({
         {/* Family Display - Simple & Clean */}
         <div className="mb-2 pb-2 border-b border-border/30">
           {computedTopFamilies && computedTopFamilies.length > 0 ? (
-            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#A67C00' }}>
-              {computedTopFamilies[0]}
-            </span>
+            <div>
+              <span className="text-xs uppercase tracking-wider" style={{ color: '#A67C00' }}>
+                <span className="italic font-semibold">{computedTopFamilies[0]}</span>
+              </span>
+              {computedTopFamilies.length > 1 && (
+                <div className="flex gap-2 mt-1">
+                  {computedTopFamilies.slice(1, 3).map((f) => (
+                    <span key={f} className="text-xs italic text-foreground/80">{f}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {scent}

@@ -36,24 +36,10 @@ export const SimpleOlfactoryDisplay: React.FC<SimpleOlfactoryDisplayProps> = ({
   return (
     <div className="space-y-6">
       {/* Famille Olfactive (unique) */}
-      {bestFamily && (
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Famille Olfactive
-          </h3>
-          <span
-            className="inline-flex px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:border-foreground/40 text-foreground/70 hover:text-foreground transition-all duration-300"
-          >
-            {bestFamily}
-          </span>
-        </div>
-      )}
+      {/* pastille de famille supprimée — affichage simplifié sur la page produit */}
 
       {/* Notes Olfactives - 3 Column Layout */}
       <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-          Composition Olfactive
-        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
           {/* Tête - Doré */}
           {notes_tete.length > 0 && (
