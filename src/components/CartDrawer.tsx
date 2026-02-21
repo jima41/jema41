@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingBag, Tag, Check, LogIn } from 'lucide-react';
+import { X, Plus, Minus, Trash2, ShoppingBag, Tag, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { usePromoCodesStore } from '@/store/usePromoCodesStore';
@@ -78,12 +78,7 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
   };
 
   const handleCheckout = () => {
-    if (!user) {
-      // Invité : rediriger vers login avant le paiement
-      navigate('/login');
-      onClose();
-      return;
-    }
+    // Autoriser le passage en caisse pour les invités et les utilisateurs connectés
     navigate('/checkout');
     onClose();
   };
@@ -279,11 +274,11 @@ const CartDrawer = ({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: 
                 whileTap={{ scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               >
-                {isGuest ? (
-                  <><LogIn className="w-4 h-4 mr-2" /><span>Se connecter pour commander</span></>
-                ) : (
-                  <><Check className="w-4 h-4 mr-2" /><span className="hidden md:inline">Passer \u00e0 la caisse</span><span className="md:hidden">Commander</span></>
-                )}
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  <span className="hidden md:inline">Passer \u00e0 la caisse</span>
+                  <span className="md:hidden">Commander</span>
+                </>
               </motion.button>
               <p className="text-[10px] md:text-xs text-center text-foreground/60 uppercase tracking-widest">
                 Paiement sécurisé • Livraison 2-4 jours
