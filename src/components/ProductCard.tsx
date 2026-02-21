@@ -203,7 +203,7 @@ const ProductCard = ({
         {/* Family Display - Simple & Clean */}
         <div className="mb-2 pb-2 border-b border-border/30">
           {validFamilies && validFamilies.length > 0 ? (
-            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#D4AF37' }}>
+            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#A67C00' }}>
               {validFamilies[0]}
             </span>
           ) : (
