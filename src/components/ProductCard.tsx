@@ -98,7 +98,7 @@ const ProductCard = ({
 
   return (
     <div 
-      className="product-card group text-left w-full relative transition-shadow duration-700 ease-in-out shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_42px_rgba(15,23,42,0.14)] rounded-t-lg md:rounded-t-xl rounded-b-[0.25rem] md:rounded-b-[0.375rem] overflow-hidden"
+      className="product-card group text-left w-full relative transition-shadow duration-700 ease-in-out shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_16px_42px_rgba(15,23,42,0.14)] rounded-t-lg md:rounded-t-xl rounded-b-[0.25rem] md:rounded-b-[0.375rem] overflow-hidden bg-background"
       onClick={() => navigate(`/product/${id}`)}
       role="button"
       tabIndex={0}
@@ -111,7 +111,7 @@ const ProductCard = ({
     >
       {/* Image Container */}
       <motion.div 
-        className="relative aspect-square overflow-hidden rounded-t-lg md:rounded-t-xl rounded-b-none bg-secondary/30 mb-2 md:mb-3"
+        className="relative aspect-square overflow-hidden rounded-t-lg md:rounded-t-xl rounded-b-none bg-background mb-2 md:mb-3"
         transition={{ duration: 0.6, ease: 'easeInOut' }}
       >
         {image ? (
@@ -189,7 +189,7 @@ const ProductCard = ({
       </motion.div>
 
       {/* Product Info - Fixed Layout */}
-      <div className="flex flex-col min-h-[110px] p-3 rounded-none bg-white/15 backdrop-blur-sm transition-all duration-300 group-hover:bg-white/30 group-hover:backdrop-blur-md cursor-pointer">
+      <div className="flex flex-col min-h-[110px] p-3 rounded-none bg-background backdrop-blur-sm transition-all duration-300 cursor-pointer">
         {/* Brand & Title */}
         <div className="mb-2">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-0.5">
