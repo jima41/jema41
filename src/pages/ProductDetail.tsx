@@ -14,7 +14,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useProductTracking } from '@/hooks/use-page-tracking';
 import { getTopFamilies } from '@/lib/olfactory';
-import { useState } from 'react';
 import { renderSimpleMarkdown } from '@/lib/markdown';
 import type { Product } from '@/lib/products';
 
