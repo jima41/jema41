@@ -275,6 +275,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
     notes_coeur: [] as string[],
     notes_fond: [] as string[],
   });
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [calculatedFamilies, setCalculatedFamilies] = useState<OlfactoryFamily[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -938,13 +939,71 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
             <Label className="text-admin-text-secondary uppercase text-xs tracking-wide font-montserrat mb-2 block">
               Description
             </Label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Décrivez ce parfum... Vous pouvez utiliser **gras** et sauter des lignes."
-              className="w-full px-3 py-2 bg-admin-card border border-admin-border rounded-md text-admin-text-primary text-sm resize-none"
-              rows={4}
-            />
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0">
+                <button
+                  type="button"
+                  aria-label="Mettre en gras"
+                  title="Mettre en gras (entoure la sélection avec ** )"
+                  onClick={() => {
+                    const el = descriptionRef.current;
+                    if (!el) return;
+                    const start = el.selectionStart ?? 0;
+                    const end = el.selectionEnd ?? 0;
+                    const val = formData.description || '';
+                    const selected = val.slice(start, end);
+
+                    // If selection already wrapped with **...**, remove wrapping
+                    if (selected.startsWith('**') && selected.endsWith('**')) {
+                      const inner = selected.slice(2, selected.length - 2);
+                      const newVal = val.slice(0, start) + inner + val.slice(end);
+                      setFormData({ ...formData, description: newVal });
+                      requestAnimationFrame(() => {
+                        el.focus();
+                        el.selectionStart = start;
+                        el.selectionEnd = start + inner.length;
+                      });
+                      return;
+                    }
+
+                    if (start === end) {
+                      // Insert placeholder **bold** and select 'bold'
+                      const insert = '**bold**';
+                      const newVal = val.slice(0, start) + insert + val.slice(end);
+                      setFormData({ ...formData, description: newVal });
+                      requestAnimationFrame(() => {
+                        el.focus();
+                        const pos = start + 2;
+                        el.selectionStart = pos;
+                        el.selectionEnd = pos + 4;
+                      });
+                      return;
+                    }
+
+                    // Wrap selection with ** **
+                    const wrapped = '**' + selected + '**';
+                    const newVal = val.slice(0, start) + wrapped + val.slice(end);
+                    setFormData({ ...formData, description: newVal });
+                    requestAnimationFrame(() => {
+                      el.focus();
+                      el.selectionStart = start;
+                      el.selectionEnd = end + 4; // added two ** on each side
+                    });
+                  }}
+                  className="w-8 h-8 rounded-md border border-admin-border bg-admin-card text-admin-text-primary flex items-center justify-center font-semibold hover:bg-admin-border/30"
+                >
+                  B
+                </button>
+              </div>
+              <textarea
+                ref={descriptionRef}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Décrivez ce parfum... Vous pouvez utiliser **gras** et sauter des lignes."
+                className="w-full px-3 py-2 bg-admin-card border border-admin-border rounded-md text-admin-text-primary text-sm resize-none"
+                rows={4}
+              />
+            </div>
             <p className="text-xs text-admin-text-secondary mt-2">Astuce: utilisez <strong>**texte en gras**</strong> et laissez une ligne vide pour créer un nouveau paragraphe.</p>
           </div>
 
