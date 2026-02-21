@@ -210,22 +210,24 @@ const ProductCard = ({
           )}
         </div>
 
-        {/* Price or Out of Stock - Bottom */}
+        {/* Price or Out of Stock - Bottom (fixed height to keep cards uniform) */}
         <div className="mt-auto">
-          {isOutOfStock ? (
-            <p className="text-center py-2 font-serif text-[#D4AF37] text-xs font-normal tracking-wide">
-              ÉDITION ÉPUISÉE
-            </p>
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-foreground text-xs">
-                {price.toFixed(2)}€
-              </span>
-              {stock > 0 && stock < 5 && (
-                <span className="text-xs text-amber-600 font-medium">Stock limité</span>
-              )}
-            </div>
-          )}
+          <div className="h-8 flex items-center w-full">
+            {isOutOfStock ? (
+              <p className="w-full text-center font-serif text-[#D4AF37] text-xs font-normal tracking-wide">
+                ÉDITION ÉPUISÉE
+              </p>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <span className="font-semibold text-foreground text-xs">
+                  {price.toFixed(2)}€
+                </span>
+                {stock > 0 && stock < 5 && (
+                  <span className="text-xs text-amber-600 font-medium">Stock limité</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

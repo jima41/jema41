@@ -14,9 +14,9 @@ interface HeaderProps {
 // ============================================================================
 // SHIPPING BAR COMPONENT
 // ============================================================================
-const ShippingBar = () => {
+export const ShippingBar = () => {
   return (
-    <div className="h-6 bg-[#FDFBF7] border-b border-border/20 flex items-center justify-center">
+    <div className="fixed top-0 left-0 right-0 h-6 bg-[#FDFBF7] border-b border-border/20 flex items-center justify-center z-40">
       <span className="text-[10px] text-gray-500 font-medium tracking-shipping uppercase">
         L'EXCELLENCE OLFACTIVE, LIVRÉE CHEZ VOUS.
       </span>
@@ -278,16 +278,13 @@ const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartC
   };
 
   return (
-    <header className="sticky top-0 w-full z-[100] bg-white/70 backdrop-blur-md border-b border-gray-100 transition-all duration-300">
-      {/* Shipping Bar */}
-      <ShippingBar />
+    <header className={`${isScrolled ? 'fixed top-0 left-0 right-0' : 'relative mt-6'} w-full z-[100] bg-white/70 dark:bg-black/40 backdrop-blur-md transition-all duration-300`}>
 
       {/* Main Header with Glassmorphism */}
       <motion.div
-        className="backdrop-blur-xl border-b transition-all duration-300"
+        className={`backdrop-blur-xl transition-all duration-300`}
         style={{
           backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,
-          borderColor: 'rgba(212, 175, 55, 0.2)',
         }}
         animate={{
           backgroundColor: `rgba(255, 255, 255, ${backdropOpacity * 0.16})`,

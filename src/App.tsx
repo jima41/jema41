@@ -7,8 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminProvider } from "@/context/AdminContext";
 import { AnalyticsProvider } from "@/context/AnalyticsContext";
-import AnnouncementBar from "@/components/AnnouncementBar";
-import Header from "@/components/Header";
+import Header, { ShippingBar } from "@/components/Header";
 import DataSyncInitializer from "@/components/DataSyncInitializer";
 import UserDataSyncInitializer from "@/components/UserDataSyncInitializer";
 import Index from "./pages/Index";
@@ -60,8 +59,8 @@ const App = () => {
             <CartProvider>
                 <DataSyncInitializer>
                   <UserDataSyncInitializer />
-                <AnnouncementBar />
                 {/* Global Header */}
+                <ShippingBar />
                 <Header />
                   <ScrollToTop />
                   <Suspense fallback={

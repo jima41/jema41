@@ -52,7 +52,7 @@ const Hero = () => {
     >
       {/* Background Image Layer */}
       <img
-        src="/images/Hero-section.webp"
+        src={`${import.meta.env.BASE_URL}images/Hero-section.webp`}
         alt="Collection Parfum Rayha"
         className="col-start-1 row-start-1 w-full h-full object-cover -z-10"
         loading="eager"
