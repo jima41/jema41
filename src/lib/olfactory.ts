@@ -332,3 +332,42 @@ export const getBestFamily = (
   return scores[0].score > 0 ? scores[0].family : (validExisting[0] || null);
 };
 
+/**
+ * Retourne les familles triées par score décroissant (maxItems optionnel)
+ */
+export const getTopFamilies = (
+  notes_tete: string[] = [],
+  notes_coeur: string[] = [],
+  notes_fond: string[] = [],
+  existingFamilies: OlfactoryFamily[] = [],
+  maxItems: number = 3,
+): OlfactoryFamily[] => {
+  const validExisting = existingFamilies.filter(f =>
+    (FAMILY_RULES.map(r => r.family) as string[]).includes(f)
+  );
+
+  const weighted: { label: string; weight: number }[] = [
+    ...notes_fond.map(n => ({ label: n.toLowerCase(), weight: 3 })),
+    ...notes_coeur.map(n => ({ label: n.toLowerCase(), weight: 2 })),
+    ...notes_tete.map(n => ({ label: n.toLowerCase(), weight: 1 })),
+  ];
+
+  // If no notes, return existingFamilies (limited)
+  if (weighted.length === 0) return validExisting.slice(0, maxItems);
+
+  const scores = FAMILY_RULES.map(rule => {
+    let score = 0;
+    for (const { label, weight } of weighted) {
+      if (rule.keywords.some(k => label.includes(k))) score += weight;
+    }
+    if (validExisting.includes(rule.family)) score += 0.5;
+    return { family: rule.family, score };
+  });
+
+  scores.sort((a, b) => b.score - a.score);
+  const result = scores.filter(s => s.score > 0).map(s => s.family);
+  // Fallback to validExisting or Floral
+  if (result.length === 0) return (validExisting.length ? validExisting : ['Floral']).slice(0, maxItems);
+  return result.slice(0, maxItems);
+};
+

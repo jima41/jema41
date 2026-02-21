@@ -13,6 +13,8 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useProductTracking } from '@/hooks/use-page-tracking';
+import { getTopFamilies } from '@/lib/olfactory';
+import { useState } from 'react';
 import { renderSimpleMarkdown } from '@/lib/markdown';
 import type { Product } from '@/lib/products';
 
@@ -164,6 +166,8 @@ const ProductDetail = () => {
   const stock = storeProduct?.stock ?? 0;
 
   const concentrationRaw = (storeProduct && (storeProduct as any).concentration) || (product && (product as any).concentration) || '';
+  const topFamilies = getTopFamilies(storeProduct?.notes_tete || product?.notes_tete || [], storeProduct?.notes_coeur || product?.notes_coeur || [], storeProduct?.notes_fond || product?.notes_fond || [], storeProduct?.families || product?.families || [], 3);
+  const [showMoreFamilies, setShowMoreFamilies] = useState(false);
   const concentrationLabel = (() => {
     if (!concentrationRaw) return '';
     const map: Record<string, string> = {
@@ -300,6 +304,27 @@ const ProductDetail = () => {
                 <h1 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal leading-snug md:leading-normal lg:leading-relaxed mb-2 md:mb-4 lg:mb-6 text-foreground">{product.name}</h1>
                 {concentrationLabel && (
                   <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{concentrationLabel}</div>
+                )}
+                {topFamilies && topFamilies.length > 0 && (
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-foreground">{topFamilies[0]}</span>
+                    {topFamilies.length > 1 && (
+                      <button
+                        onClick={() => setShowMoreFamilies(!showMoreFamilies)}
+                        aria-expanded={showMoreFamilies}
+                        className="text-xs text-muted-foreground px-2 py-0.5 rounded hover:bg-admin-border/30"
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                )}
+                {showMoreFamilies && topFamilies.length > 1 && (
+                  <div className="flex gap-2 mb-2">
+                    {topFamilies.slice(1, 3).map((f) => (
+                      <span key={f} className="text-xs text-foreground/80">{f}</span>
+                    ))}
+                  </div>
                 )}
                 {stock === 0 && (
                   <span className="text-xs md:text-sm lg:text-base font-serif text-[#D4AF37] font-light tracking-widest uppercase mb-4 md:mb-6 inline-block">ÉPUISÉ</span>

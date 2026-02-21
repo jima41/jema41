@@ -6,6 +6,7 @@ import { ShoppingBag, Heart } from 'lucide-react';
 import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuth } from '@/context/AuthContext';
 import type { OlfactoryFamily } from '@/lib/olfactory';
+import { getTopFamilies } from '@/lib/olfactory';
 
 interface ProductCardProps {
   id: string;
@@ -84,6 +85,8 @@ const ProductCard = ({
   
   // Filter valid families
   const validFamilies = (families || []).filter((f) => VALID_FAMILIES.includes(f));
+  // Compute top family if notes present
+  const computedTopFamilies = getTopFamilies(notes_tete || [], notes_coeur || [], notes_fond || [], validFamilies, 3);
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -202,9 +205,9 @@ const ProductCard = ({
 
         {/* Family Display - Simple & Clean */}
         <div className="mb-2 pb-2 border-b border-border/30">
-          {validFamilies && validFamilies.length > 0 ? (
+          {computedTopFamilies && computedTopFamilies.length > 0 ? (
             <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#A67C00' }}>
-              {validFamilies[0]}
+              {computedTopFamilies[0]}
             </span>
           ) : (
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
