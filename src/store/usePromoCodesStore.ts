@@ -6,11 +6,13 @@ export interface PromoCode {
   code: string;
   discount: number;
   active: boolean;
+  usageCount?: number;
   createdAt: number;
 }
 
 interface PromoCodesState {
   promoCodes: PromoCode[];
+  incrementUsage: (code: string) => void;
   addPromoCode: (code: string, discount: number) => { success: boolean; error?: string };
   removePromoCode: (id: string) => void;
   togglePromoCode: (id: string) => void;
@@ -23,6 +25,14 @@ export const usePromoCodesStore = create<PromoCodesState>()(
   persist(
     (set, get) => ({
       promoCodes: [],
+      incrementUsage: (code: string) => {
+        const normalized = normalizeCode(code);
+        set((state) => ({
+          promoCodes: state.promoCodes.map((promo) =>
+            promo.code === normalized ? { ...promo, usageCount: (promo.usageCount || 0) + 1 } : promo
+          ),
+        }));
+      },
       addPromoCode: (code, discount) => {
         const normalized = normalizeCode(code);
         if (!normalized) {

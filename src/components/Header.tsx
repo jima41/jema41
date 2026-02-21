@@ -299,7 +299,7 @@ const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartC
 
   return (
     <>
-      <header ref={headerRef} className="fixed top-0 left-0 right-0 w-full z-[100] bg-white/70 dark:bg-black/40 backdrop-blur-md transition-all duration-300 overflow-hidden">
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 w-full z-[100] bg-white/70 dark:bg-black/40 backdrop-blur-md transition-all duration-300">
 
         {/* Main Header with Glassmorphism */}
         <motion.div
@@ -409,7 +409,7 @@ const Header = ({ cartItemsCount: propsCartItemsCount, onCartClick: propsOnCartC
                   {/* Profile Dropdown */}
                   {isProfileOpen && (
                     <motion.div
-                      className="absolute right-0 mt-2 w-48 bg-background border border-border/40 rounded-lg shadow-lg backdrop-blur-md overflow-hidden z-50"
+                      className="absolute right-0 mt-2 w-48 bg-background border border-border/40 rounded-lg shadow-lg backdrop-blur-md overflow-hidden z-[110]"
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}

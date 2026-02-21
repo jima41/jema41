@@ -19,6 +19,7 @@ export const UserDataSyncInitializer = () => {
     initializeCart,
     initializeGuestCart,
     mergeGuestCart,
+    migrateGuestPromo,
     setupCartRealtime,
     teardownCartRealtime,
   } = useCartStore();
@@ -50,6 +51,9 @@ export const UserDataSyncInitializer = () => {
 
         // 1. Fusionner le guest cart dans Supabase
         await withTimeout(mergeGuestCart(user.id), 15000, 'mergeGuestCart');
+
+        // 1b. Migrer le promo code stocké en local vers le store utilisateur
+        await withTimeout(migrateGuestPromo(user.id), 5000, 'migrateGuestPromo');
 
         // 2. Charger le panier complet depuis Supabase (inclut les articles fusionnés)
         await withTimeout(initializeCart(user.id), 10000, 'initializeCart');

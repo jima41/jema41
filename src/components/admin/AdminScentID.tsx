@@ -5,6 +5,7 @@ import { ScentProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { Eye, Users, TrendingUp, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -17,6 +18,7 @@ interface UserScentProfile extends ScentProfile {
 }
 
 const AdminScentID = () => {
+  const navigate = useNavigate();
   const [scentProfiles, setScentProfiles] = useState<UserScentProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<UserScentProfile | null>(null);
@@ -79,6 +81,11 @@ const AdminScentID = () => {
     <div className="space-y-6">
       {/* Header Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="md:col-span-4 flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => navigate('/admin/clients')}>
+            Voir les comptes clients
+          </Button>
+        </div>
         <Card className="glass-panel border-admin-border">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">

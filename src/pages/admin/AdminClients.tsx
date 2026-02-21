@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit2, Trash2, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/supabase';
+import { useAdminStore } from '@/store/useAdminStore';
 import { useAuth } from '@/context/AuthContext';
 
 interface User {
@@ -14,15 +15,21 @@ interface User {
   role: 'admin' | 'user';
 }
 
+interface AdminUser extends User {
+  ordersCount: number;
+  cartItems: any[];
+}
+
 interface UserModalData {
-  user: User | null;
+  user: AdminUser | null;
   isOpen: boolean;
 }
 
 const AdminClients = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const adminOrders = useAdminStore((s) => s.orders);
   const [modal, setModal] = useState<UserModalData>({ user: null, isOpen: false });
   const [editForm, setEditForm] = useState<Partial<User>>({});
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -39,11 +46,7 @@ const AdminClients = () => {
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -52,23 +55,84 @@ const AdminClients = () => {
 
       if (error) throw error;
 
-      const allUsers: User[] = (data || []).map((p: any) => ({
+      const rows = (data || []) as any[];
+
+      // Build a map of orders count from adminOrders
+      const ordersByUser = new Map<string, number>();
+      adminOrders.forEach((o: any) => {
+        if (!o.userId) return;
+        ordersByUser.set(o.userId, (ordersByUser.get(o.userId) || 0) + 1);
+      });
+
+      const userIds = rows.map((r) => r.id).filter(Boolean);
+
+      // Fetch cart items for all users in one query
+      let cartMap = new Map<string, any[]>();
+      if (userIds.length > 0) {
+        const { data: cartData } = await supabase
+          .from('cart_items')
+          .select('*')
+          .in('user_id', userIds)
+          .order('added_at', { ascending: false });
+
+        (cartData || []).forEach((ci: any) => {
+          const list = cartMap.get(ci.user_id) || [];
+          list.push(ci);
+          cartMap.set(ci.user_id, list);
+        });
+      }
+
+      const allUsers: AdminUser[] = rows.map((p: any) => ({
         id: p.id,
         username: p.username || '',
         email: p.email || '',
         firstName: p.first_name || '',
         lastName: p.last_name || '',
         role: p.role || 'user',
+        ordersCount: ordersByUser.get(p.id) || 0,
+        cartItems: cartMap.get(p.id) || [],
       }));
+
       setUsers(allUsers);
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
     }
-  };
+  }, [adminOrders]);
 
-  const handleViewUser = (user: User) => {
-    setModal({ user, isOpen: true });
-    setEditForm(user);
+  // Charger initialement et à chaque changement d'adminOrders
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  // Souscription temps réel pour rafraîchir automatiquement la liste
+  useEffect(() => {
+    const channel = supabase
+      .channel('profiles_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          console.log('🔔 profiles change detected:', payload.event, payload);
+          // recharger la liste
+          loadUsers();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') console.log('✅ profiles realtime subscribed');
+      });
+
+    return () => {
+      try {
+        channel.unsubscribe();
+      } catch (e) {
+        /* ignore */
+      }
+    };
+  }, [loadUsers]);
+
+  const handleViewUser = (u: AdminUser) => {
+    setModal({ user: u, isOpen: true });
+    setEditForm(u);
   };
 
   const handleCloseModal = () => {
@@ -136,6 +200,8 @@ const AdminClients = () => {
                 <th className="px-6 py-4 text-left text-sm font-semibold text-admin-text-primary">Email</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-admin-text-primary">Prénom</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-admin-text-primary">Nom</th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-admin-text-primary">Commandes</th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-admin-text-primary">Panier</th>
                 <th className="px-6 py-4 text-right text-sm font-semibold text-admin-text-primary">Actions</th>
               </tr>
             </thead>
@@ -153,6 +219,8 @@ const AdminClients = () => {
                     <td className="px-6 py-4 text-sm text-admin-text-secondary">{user.email}</td>
                     <td className="px-6 py-4 text-sm text-admin-text-secondary">{user.firstName || '-'}</td>
                     <td className="px-6 py-4 text-sm text-admin-text-secondary">{user.lastName || '-'}</td>
+                    <td className="px-6 py-4 text-center text-sm text-admin-text-secondary">{(user as AdminUser).ordersCount || 0}</td>
+                    <td className="px-6 py-4 text-center text-sm text-admin-text-secondary">{((user as AdminUser).cartItems || []).length}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button
@@ -240,6 +308,50 @@ const AdminClients = () => {
                   onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
                   className="w-full px-3 py-2 bg-admin-surface-secondary border border-admin-border rounded text-admin-text-primary focus:border-[#D4AF37] outline-none"
                 />
+              </div>
+            </div>
+
+            {/* User stats */}
+            <div className="mb-6 border-t border-admin-border pt-4">
+              <h3 className="text-sm font-medium text-admin-text-primary mb-2">Statistiques</h3>
+              <div className="text-sm text-admin-text-secondary grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-admin-text-primary font-semibold">Commandes</div>
+                  <div>{modal.user ? modal.user.ordersCount : 0}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-admin-text-primary font-semibold">Articles dans le panier</div>
+                  <div>{modal.user ? (modal.user.cartItems || []).length : 0}</div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-xs text-admin-text-primary font-semibold">Panier (détails)</div>
+                <div className="mt-2 space-y-2">
+                  {modal.user && modal.user.cartItems && modal.user.cartItems.length > 0 ? (
+                    modal.user.cartItems.map((ci: any) => (
+                      <div key={ci.id} className="text-sm text-admin-text-secondary flex justify-between">
+                        <div>{ci.product_name}</div>
+                        <div className="text-xs text-admin-text-secondary">x{ci.quantity} · {ci.product_price.toFixed(2)}€</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-admin-text-secondary">Aucun article dans le panier</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="text-xs text-admin-text-primary font-semibold">Adresse (dernière commande)</div>
+                <div className="text-sm text-admin-text-secondary">
+                  {(() => {
+                    if (!modal.user) return '-';
+                    const userOrders = adminOrders.filter(o => o.userId === modal.user!.id);
+                    if (!userOrders || userOrders.length === 0) return '-';
+                    const latest = userOrders.sort((a,b) => b.timestamp - a.timestamp)[0];
+                    return latest.shippingAddress ? `${latest.shippingAddress.address}, ${latest.shippingAddress.city} ${latest.shippingAddress.postalCode}, ${latest.shippingAddress.country}` : '-';
+                  })()}
+                </div>
               </div>
             </div>
 

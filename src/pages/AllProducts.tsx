@@ -4,6 +4,8 @@ import { ArrowLeft, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/context/AuthContext';
+import { upsertUserScentProfile } from '@/integrations/supabase/supabase';
 import ProductCard from '@/components/ProductCard';
 import CartDrawer from '@/components/CartDrawer';
 import FilterDrawer from '@/components/FilterDrawer';
@@ -55,6 +57,40 @@ const AllProducts = () => {
   const [activeFamily, setActiveFamily] = useState<OlfactoryFamily | 'tous'>(familyFromUrl ? (familyFromUrl as OlfactoryFamily) : 'tous');
   const [activeBrand, setActiveBrand] = useState('tous');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Persist the selected family locally and for logged-in users
+  const ACTIVE_FAMILY_KEY = 'rayha_active_family';
+
+  // Load persisted family on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(ACTIVE_FAMILY_KEY);
+      if (stored && activeFamily === 'tous') {
+        setActiveFamily(stored as OlfactoryFamily);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Persist on change and sync to Supabase for authenticated users
+  useEffect(() => {
+    try {
+      if (activeFamily) {
+        localStorage.setItem(ACTIVE_FAMILY_KEY, activeFamily);
+      }
+    } catch {
+      // ignore
+    }
+
+    if (user?.id && activeFamily && activeFamily !== 'tous') {
+      // Fire-and-forget: store user's primary family in scent_profiles
+      upsertUserScentProfile(user.id, { primary_family: activeFamily }).catch((err) => {
+        console.error('❌ Erreur sauvegarde primary_family:', err);
+      });
+    }
+  }, [activeFamily, user?.id]);
 
   // Scroll to top when component mounts (only once)
   useEffect(() => {

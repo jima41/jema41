@@ -11,7 +11,7 @@ const getAdminDisplayUsername = () =>
   import.meta.env.VITE_ADMIN_USERNAME || 'admin';
 
 export interface User {
-  id: string;
+  did: string;
   username: string;
   email: string;
   firstName?: string;
@@ -70,33 +70,34 @@ const fetchUserProfile = async (authUserId: string, authEmail: string): Promise<
     console.log('🔍 fetchUserProfile: Résultat select', { data: !!data, error: error?.message });
 
     if (error || !data) {
-      console.warn('⚠️ Profil non trouvé, tentative de création...');
-      const { data: newProfile, error: insertError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authUserId,
-          email: authEmail,
-          username: isAdminEmail(authEmail) ? getAdminDisplayUsername() : authEmail.split('@')[0],
-          role: isAdminEmail(authEmail) ? 'admin' : 'user',
-          first_name: '',
-          last_name: '',
-        })
-        .select()
-        .single();
+      console.warn('⚠️ Profil non trouvé, tentative de création via RPC update_user_profile...');
+      try {
+        // Utiliser la fonction RPC `update_user_profile` qui est définie côté DB
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('update_user_profile', {
+          p_user_id: authUserId,
+          p_email: authEmail,
+          p_first_name: '',
+          p_last_name: '',
+        });
 
-      if (insertError || !newProfile) {
-        console.error('❌ Impossible de créer le profil:', insertError?.message);
+        if (rpcError) {
+          console.error('❌ RPC update_user_profile failed:', rpcError.message);
+          return buildFallbackProfile(authUserId, authEmail);
+        }
+
+        const newProfile = rpcResult as any;
+        return {
+          id: newProfile.id || authUserId,
+          username: newProfile.username || (isAdminEmail(authEmail) ? getAdminDisplayUsername() : authEmail.split('@')[0]),
+          email: newProfile.email || authEmail,
+          firstName: newProfile.first_name || '',
+          lastName: newProfile.last_name || '',
+          role: (newProfile.role as 'admin' | 'user') || 'user',
+        };
+      } catch (e) {
+        console.error('❌ Erreur RPC création profil:', e);
         return buildFallbackProfile(authUserId, authEmail);
       }
-
-      return {
-        id: newProfile.id,
-        username: newProfile.username || (isAdminEmail(authEmail) ? getAdminDisplayUsername() : authEmail.split('@')[0]),
-        email: newProfile.email || authEmail,
-        firstName: newProfile.first_name || '',
-        lastName: newProfile.last_name || '',
-        role: (newProfile.role as 'admin' | 'user') || 'user',
-      };
     }
 
     return {
@@ -293,34 +294,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = useCallback(async (username: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            first_name: '',
-            last_name: '',
-          },
-        },
-      });
+      try {
+        const res = await withTimeout(
+          supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                username,
+                first_name: '',
+                last_name: '',
+              },
+            },
+          }),
+          10000,
+          'signUp'
+        );
 
-      if (error) {
-        if (error.message.includes('already registered')) {
-          throw new Error('Cet email est déjà utilisé');
+        console.log('🔐 signup response', res);
+
+        const { data, error } = res as any;
+
+        if (error) {
+          console.error('🔐 signup error detail', error);
+          if (error.message && error.message.includes('already registered')) {
+            throw new Error('Cet email est déjà utilisé');
+          }
+          throw new Error(error.message || 'Erreur lors de l\'inscription');
         }
-        throw new Error(error.message);
-      }
 
-      // Si l'email doit être confirmé
-      if (data.user && !data.session) {
-        throw new Error('Un email de confirmation vous a été envoyé. Vérifiez votre boîte mail.');
-      }
+        // Si l'email doit être confirmé
+        if (data?.user && !data?.session) {
+          throw new Error('Un email de confirmation vous a été envoyé. Vérifiez votre boîte mail.');
+        }
 
-      // Si l'inscription connecte directement (email confirmation désactivée)
-      if (data.user && data.session) {
-        const profile = await fetchUserProfile(data.user.id, data.user.email || '');
-        setUser(profile);
+        // Si l'inscription connecte directement (email confirmation désactivée)
+        if (data?.user && data?.session) {
+          const profile = await fetchUserProfile(data.user.id, data.user.email || '');
+          setUser(profile);
+        }
+      } catch (e) {
+        console.error('🔐 signup exception', e);
+        throw e;
       }
     } finally {
       setIsLoading(false);

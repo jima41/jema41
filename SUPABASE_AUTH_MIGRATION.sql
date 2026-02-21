@@ -48,7 +48,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, username, email, role, first_name, last_name)
   VALUES (
-    NEW.id::TEXT,
+    NEW.id::UUID,
     COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
     NEW.email,
     CASE 

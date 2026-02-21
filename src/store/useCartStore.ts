@@ -120,6 +120,7 @@ interface CartStoreState {
   removeItemGuest: (cartItemId: string) => void;
   clearCart: (userId: string) => Promise<void>;
   mergeGuestCart: (userId: string) => Promise<void>;
+  migrateGuestPromo: (userId: string) => Promise<void>;
   setIsCartOpen: (open: boolean) => void;
   setPromoCode: (code: string, discount: number) => void;
   clearPromoCode: () => void;
@@ -177,6 +178,26 @@ export const useCartStore = create<CartStoreState>()((set, get) => ({
     const totals = calculateTotals(items);
     set({ cartItems: items, ...totals, isLoading: false, promoCode: promo.code, promoDiscount: promo.discount });
     console.log(`📦 Guest cart chargé: ${items.length} articles`);
+  },
+
+  /**
+   * Migrer le promo stocké en local (guest) vers l'état courant après login.
+   * Ne tente pas d'écrire dans la DB (pas de table promo dédiée) — applique simplement
+   * le code au store authentifié et nettoie le localStorage.
+   */
+  migrateGuestPromo: async (userId: string) => {
+    try {
+      const promo = loadGuestPromo();
+      if (promo && promo.code) {
+        // Appliquer le code dans l'état courant
+        set({ promoCode: promo.code, promoDiscount: promo.discount });
+        // Nettoyer le guest promo
+        clearGuestPromo();
+        console.log(`🔁 Promo migré pour user ${userId}: ${promo.code}`);
+      }
+    } catch (error) {
+      console.error('❌ Erreur migrateGuestPromo:', error);
+    }
   },
 
   /**
