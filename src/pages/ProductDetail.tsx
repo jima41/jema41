@@ -13,6 +13,7 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useProductTracking } from '@/hooks/use-page-tracking';
+import { renderSimpleMarkdown } from '@/lib/markdown';
 import type { Product } from '@/lib/products';
 
 const ProductDetail = () => {
@@ -162,6 +163,17 @@ const ProductDetail = () => {
   const storeProduct = storeProducts.find(p => p.id === id);
   const stock = storeProduct?.stock ?? 0;
 
+  const concentrationRaw = (storeProduct && (storeProduct as any).concentration) || (product && (product as any).concentration) || '';
+  const concentrationLabel = (() => {
+    if (!concentrationRaw) return '';
+    const map: Record<string, string> = {
+      EX: 'Extrait de Parfum',
+      EDP: 'Eau de Parfum',
+      EDT: 'Eau de Toilette',
+    };
+    return map[concentrationRaw] || concentrationRaw;
+  })();
+
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -286,6 +298,9 @@ const ProductDetail = () => {
                   {product.brand}
                 </p>
                 <h1 className="font-serif text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal leading-snug md:leading-normal lg:leading-relaxed mb-2 md:mb-4 lg:mb-6 text-foreground">{product.name}</h1>
+                {concentrationLabel && (
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{concentrationLabel}</div>
+                )}
                 {stock === 0 && (
                   <span className="text-xs md:text-sm lg:text-base font-serif text-[#D4AF37] font-light tracking-widest uppercase mb-4 md:mb-6 inline-block">ÉPUISÉ</span>
                 )}
@@ -294,9 +309,11 @@ const ProductDetail = () => {
               <div className="space-y-3 md:space-y-4 lg:space-y-6">
                 {/* Description */}
                 <div className="mt-2 md:mt-3 lg:mt-4">
-                  <p className="text-xs md:text-sm text-foreground/70 leading-relaxed md:leading-loose max-w-prose">
-                    {product.description}
-                  </p>
+                  <div
+                    className="text-xs md:text-sm text-foreground/70 leading-relaxed md:leading-loose max-w-prose"
+                    // Nous rendons un Markdown minimal (gras + sauts de ligne) de façon sûre
+                    dangerouslySetInnerHTML={{ __html: renderSimpleMarkdown(product.description) }}
+                  />
                 </div>
 
                 {/* Notes Olfactives Simplifiées */}

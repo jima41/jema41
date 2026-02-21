@@ -269,6 +269,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
     monthlySales: 50,
     description: '',
     volume: '50ml',
+    concentration: 'EDP',
     gender: 'mixte' as 'homme' | 'femme' | 'mixte',
     notes_tete: [] as string[],
     notes_coeur: [] as string[],
@@ -336,6 +337,7 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
         monthlySales: product.monthlySales,
         description: product.description || '',
         volume: product.volume || '50ml',
+        concentration: (product as any).concentration || 'EDP',
         gender: product.gender || 'mixte',
         notes_tete: product.notes_tete || [],
         notes_coeur: product.notes_coeur || [],
@@ -939,10 +941,11 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Décrivez ce parfum..."
+              placeholder="Décrivez ce parfum... Vous pouvez utiliser **gras** et sauter des lignes."
               className="w-full px-3 py-2 bg-admin-card border border-admin-border rounded-md text-admin-text-primary text-sm resize-none"
               rows={4}
             />
+            <p className="text-xs text-admin-text-secondary mt-2">Astuce: utilisez <strong>**texte en gras**</strong> et laissez une ligne vide pour créer un nouveau paragraphe.</p>
           </div>
 
           {/* Volume */}
@@ -956,6 +959,33 @@ export const ProductSlideOver: React.FC<ProductSlideOverProps> = ({
               placeholder="50ml"
               className="bg-admin-card border-admin-border text-admin-text-primary"
             />
+          </div>
+
+          {/* Concentration / Type de parfum */}
+          <div>
+            <Label className="text-admin-text-secondary uppercase text-xs tracking-wide font-montserrat mb-2 block">
+              Type / Concentration
+            </Label>
+            <div className="flex gap-2">
+              {([
+                { value: 'EX', label: 'Extrait de Parfum' },
+                { value: 'EDP', label: 'Eau de Parfum' },
+                { value: 'EDT', label: 'Eau de Toilette' },
+              ]).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, concentration: opt.value })}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-xs font-semibold tracking-wide transition-all duration-200 ${
+                    formData.concentration === opt.value
+                      ? 'bg-amber-500/20 text-amber-400 border-amber-400'
+                      : 'bg-admin-card border-admin-border text-admin-text-secondary hover:border-admin-border/80'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Pour (Gender) */}
